@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build
+dist/
+build/
+coverage/
+.turbo/
+
+# Environment
+.env
+.env.*
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Supabase
+.supabase/
+
+# Temporary
+tmp/
+.temp/
