@@ -328,6 +328,55 @@ const financeRoutes:
       'finance.settlement.view',
   },
 },
+{
+  path:
+    '/finance/reports',
+
+  name:
+    'FinanceReports',
+
+  component:
+    () =>
+      import(
+        '../../views/finance/FinanceReportListView.vue'
+      ),
+
+  meta: {
+    title:
+      '財務報表',
+
+    requiresAuth:
+      true,
+
+    permission:
+      'finance.report.view',
+  },
+},
+
+{
+  path:
+    '/finance/reports/:id',
+
+  name:
+    'FinanceReportDetail',
+
+  component:
+    () =>
+      import(
+        '../../views/finance/FinanceReportDetailView.vue'
+      ),
+
+  meta: {
+    title:
+      '財務報表詳情',
+
+    requiresAuth:
+      true,
+
+    permission:
+      'finance.report.view',
+  },
+},
   ]
 
 export default financeRoutes

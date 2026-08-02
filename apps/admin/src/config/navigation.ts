@@ -86,6 +86,16 @@ export const adminNavigation: NavigationItem[] = [
   permission:
     'finance.settlement.view',
 },
+{
+  label:
+    '財務報表',
+
+  path:
+    '/finance/reports',
+
+  permission:
+    'finance.report.view',
+},
   {
     label: '文旅管理',
     path: '/travel',
