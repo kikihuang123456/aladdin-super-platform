@@ -36,6 +36,16 @@ export const adminNavigation: NavigationItem[] = [
   label:'訂單管理',
   path:'/order',
 },
+{
+  label:
+    '財務中心',
+
+  path:
+    '/finance',
+
+  permission:
+    'finance.view',
+},
   {
     label: '文旅管理',
     path: '/travel',
@@ -52,4 +62,5 @@ export const adminNavigation: NavigationItem[] = [
     permission: 'system.view',
     disabled: true,
   },
+
 ]

@@ -19,6 +19,9 @@ import orderRoutes from './modules/order'
 import mallCategoryRoutes
 from './modules/mall-category'
 
+import financeRoutes
+  from './modules/finance'
+
 import { registerPermissionGuard } from './permission'
 const routes: RouteRecordRaw[] = [
   ...authRoutes,
@@ -32,6 +35,7 @@ const routes: RouteRecordRaw[] = [
   ...travelRoutes,
   ...aiRoutes,
   ...orderRoutes,
+  ...financeRoutes,
 ]
 
 const router = createRouter({
