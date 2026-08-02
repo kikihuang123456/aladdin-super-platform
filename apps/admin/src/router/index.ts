@@ -8,11 +8,16 @@ import dashboardRoutes from './modules/dashboard'
 import memberRoutes from './modules/member'
 import merchantRoutes from './modules/merchant'
 import dealerRoutes from './modules/dealer'
-import mallRoutes from './modules/mall'
 import travelRoutes from './modules/travel'
 import aiRoutes from './modules/ai'
 import authRoutes from './modules/auth'
 import systemRoutes from './modules/system'
+import {
+  mallRoutes,
+} from './modules/mall'
+import orderRoutes from './modules/order'
+import mallCategoryRoutes
+from './modules/mall-category'
 
 import { registerPermissionGuard } from './permission'
 const routes: RouteRecordRaw[] = [
@@ -23,8 +28,10 @@ const routes: RouteRecordRaw[] = [
   ...merchantRoutes,
   ...dealerRoutes,
   ...mallRoutes,
+  ...mallCategoryRoutes,
   ...travelRoutes,
   ...aiRoutes,
+  ...orderRoutes,
 ]
 
 const router = createRouter({

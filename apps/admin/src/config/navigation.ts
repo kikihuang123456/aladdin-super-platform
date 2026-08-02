@@ -33,6 +33,10 @@ export const adminNavigation: NavigationItem[] = [
     permission: 'mall.view',
   },
   {
+  label:'訂單管理',
+  path:'/order',
+},
+  {
     label: '文旅管理',
     path: '/travel',
     permission: 'travel.view',

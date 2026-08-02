@@ -79,7 +79,9 @@
             icon="單"
           />
         </div>
-      </section>
+            </section>
+
+      <OrderDashboardCard />
 
       <section class="system-grid">
         <article class="system-card">
@@ -131,6 +133,7 @@
 <script setup lang="ts">
 import AdminLayout from '../../layouts/AdminLayout.vue'
 import KPICard from '../../components/dashboard/KPICard.vue'
+import OrderDashboardCard from '../../components/dashboard/OrderDashboardCard.vue'
 </script>
 
 <style scoped>

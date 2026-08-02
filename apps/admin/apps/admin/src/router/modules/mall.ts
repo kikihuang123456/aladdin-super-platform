@@ -2,7 +2,7 @@ import type {
   RouteRecordRaw,
 } from 'vue-router'
 
-export const mallRoutes:
+const mallRoutes:
   RouteRecordRaw[] = [
     {
       path: '/mall',
@@ -12,12 +12,12 @@ export const mallRoutes:
           '../../views/mall/MallListView.vue'
         ),
       meta: {
-        title: '商品管理',
+        title: '商城管理',
         requiresAuth: true,
-        permission:
-          'mall.view',
+        permission: 'mall.view',
       },
     },
+
     {
       path: '/mall/create',
       name: 'mall-create',
@@ -28,10 +28,38 @@ export const mallRoutes:
       meta: {
         title: '新增商品',
         requiresAuth: true,
-        permission:
-          'mall.create',
+        permission: 'mall.create',
       },
     },
+
+    {
+      path: '/mall/category',
+      name: 'mall-category',
+      component: () =>
+        import(
+          '../../views/mall/MallCategoryView.vue'
+        ),
+      meta: {
+        title: '商品分類',
+        requiresAuth: true,
+        permission: 'mall.view',
+      },
+    },
+
+    {
+      path: '/mall/:id/edit',
+      name: 'mall-edit',
+      component: () =>
+        import(
+          '../../views/mall/MallEditView.vue'
+        ),
+      meta: {
+        title: '編輯商品',
+        requiresAuth: true,
+        permission: 'mall.update',
+      },
+    },
+
     {
       path: '/mall/:id',
       name: 'mall-detail',
@@ -42,34 +70,7 @@ export const mallRoutes:
       meta: {
         title: '商品詳情',
         requiresAuth: true,
-        permission:
-          'mall.view',
-      },
-    },
-    {
-  path: '/mall/:id/edit',
-  name: 'mall-edit',
-  component: () =>
-    import(
-      '../../views/mall/MallEditView.vue'
-    ),
-  meta: {
-    title: '編輯商品',
-    requiresAuth: true,
-  },
-},
-    {
-      path: '/mall/categories',
-      name: 'mall-categories',
-      component: () =>
-        import(
-          '../../views/mall/MallCategoryView.vue'
-        ),
-      meta: {
-        title: '商品分類',
-        requiresAuth: true,
-        permission:
-          'mall.view',
+        permission: 'mall.view',
       },
     },
   ]

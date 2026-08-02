@@ -222,7 +222,9 @@
               </strong>
               頁
 
-              <span>／</span>
+              <span>
+                ／
+              </span>
 
               共
               <strong>
@@ -264,8 +266,8 @@ import {
 
 import AdminLayout from '../../layouts/AdminLayout.vue'
 
-import MallProductStats from '../../components/mall/MallProductStats.vue'
 import MallProductFilters from '../../components/mall/MallProductFilters.vue'
+import MallProductStats from '../../components/mall/MallProductStats.vue'
 import MallProductTable from '../../components/mall/MallProductTable.vue'
 
 import {
@@ -401,27 +403,20 @@ function handleViewProduct(
   )
 }
 
-async function handleEditProduct(
+function handleEditProduct(
   productId: string,
-): Promise<void> {
-  console.log(
-    '[MallListView] edit product:',
-    productId,
-  )
-
-  try {
-    await router.push({
-      name: 'mall-edit',
-      params: {
-        id: productId,
-      },
-    })
-  } catch (caughtError) {
-    console.error(
-      '[MallListView] route to edit failed:',
-      caughtError,
+): void {
+  if (
+    !permissionStore.hasPermission(
+      'mall.update',
     )
+  ) {
+    return
   }
+
+  router.push(
+    `/mall/${productId}/edit`,
+  )
 }
 </script>
 
@@ -439,8 +434,13 @@ async function handleEditProduct(
   gap: 24px;
 }
 
+.page-header__content {
+  min-width: 0;
+}
+
 .page-header__actions {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 12px;
 }
@@ -458,11 +458,13 @@ async function handleEditProduct(
   color: #0f172a;
   font-size: 34px;
   font-weight: 800;
+  line-height: 1.2;
 }
 
 .page-description {
   margin: 0;
   color: #64748b;
+  font-size: 15px;
   line-height: 1.7;
 }
 
@@ -531,16 +533,24 @@ async function handleEditProduct(
   border: 1px solid #e5e7eb;
   border-radius: 18px;
   background: #ffffff;
+  box-shadow:
+    0 10px 25px
+    rgba(15, 23, 42, 0.05);
 }
 
 .table-toolbar {
+  display: flex;
   padding: 22px 24px;
   border-bottom: 1px solid #e5e7eb;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .table-toolbar h2 {
   margin: 0;
   color: #0f172a;
+  font-size: 21px;
+  font-weight: 800;
 }
 
 .table-toolbar p {
@@ -568,11 +578,15 @@ async function handleEditProduct(
   margin-top: 18px;
   color: #0f172a;
   font-size: 17px;
+  font-weight: 800;
 }
 
 .state-panel p {
+  max-width: 460px;
   margin: 8px 0 22px;
   color: #94a3b8;
+  font-size: 14px;
+  line-height: 1.7;
 }
 
 .state-panel__icon {
@@ -583,6 +597,7 @@ async function handleEditProduct(
   border-radius: 22px;
   background: #eef2ff;
   color: #3157d6;
+  font-size: 14px;
   font-weight: 900;
 }
 
@@ -592,7 +607,8 @@ async function handleEditProduct(
   border: 4px solid #e0e7ff;
   border-top-color: #3157d6;
   border-radius: 50%;
-  animation: mall-spin 0.8s linear infinite;
+  animation:
+    mall-spin 0.8s linear infinite;
 }
 
 @keyframes mall-spin {
@@ -616,6 +632,10 @@ async function handleEditProduct(
   font-size: 13px;
 }
 
+.pagination__summary strong {
+  color: #0f172a;
+}
+
 .pagination__summary span {
   margin-left: 12px;
   color: #94a3b8;
@@ -634,6 +654,15 @@ async function handleEditProduct(
   text-align: center;
 }
 
+.pagination__page strong {
+  color: #0f172a;
+}
+
+.pagination__page span {
+  margin: 0 4px;
+  color: #cbd5e1;
+}
+
 @media (max-width: 760px) {
   .page-header {
     flex-direction: column;
@@ -648,6 +677,15 @@ async function handleEditProduct(
   }
 
   .pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pagination__controls {
+    justify-content: center;
+  }
+
+  .error-panel {
     align-items: stretch;
     flex-direction: column;
   }
