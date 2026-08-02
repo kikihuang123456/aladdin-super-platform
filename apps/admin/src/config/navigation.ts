@@ -76,6 +76,16 @@ export const adminNavigation: NavigationItem[] = [
   permission:
     'finance.withdraw.view',
 },
+{
+  label:
+    '結算管理',
+
+  path:
+    '/finance/settlements',
+
+  permission:
+    'finance.settlement.view',
+},
   {
     label: '文旅管理',
     path: '/travel',

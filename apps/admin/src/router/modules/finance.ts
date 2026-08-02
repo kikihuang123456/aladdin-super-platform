@@ -279,6 +279,55 @@ const financeRoutes:
       'finance.refund.view',
   },
 },
+{
+  path:
+    '/finance/settlements',
+
+  name:
+    'FinanceSettlements',
+
+  component:
+    () =>
+      import(
+        '../../views/finance/FinanceSettlementListView.vue'
+      ),
+
+  meta: {
+    title:
+      '結算管理',
+
+    requiresAuth:
+      true,
+
+    permission:
+      'finance.settlement.view',
+  },
+},
+
+{
+  path:
+    '/finance/settlements/:id',
+
+  name:
+    'FinanceSettlementDetail',
+
+  component:
+    () =>
+      import(
+        '../../views/finance/FinanceSettlementDetailView.vue'
+      ),
+
+  meta: {
+    title:
+      '結算申請詳情',
+
+    requiresAuth:
+      true,
+
+    permission:
+      'finance.settlement.view',
+  },
+},
   ]
 
 export default financeRoutes
