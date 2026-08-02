@@ -83,6 +83,104 @@ const financeRoutes:
       'finance.transaction.view',
   },
 },
+{
+  path:
+    '/finance/wallets',
+
+  name:
+    'FinanceWallets',
+
+  component:
+    () =>
+      import(
+        '../../views/finance/FinanceWalletListView.vue'
+      ),
+
+  meta: {
+    title:
+      '錢包管理',
+
+    requiresAuth:
+      true,
+
+    permission:
+      'finance.wallet.view',
+  },
+},
+
+{
+  path:
+    '/finance/wallets/:id',
+
+  name:
+    'FinanceWalletDetail',
+
+  component:
+    () =>
+      import(
+        '../../views/finance/FinanceWalletDetailView.vue'
+      ),
+
+  meta: {
+    title:
+      '錢包詳情',
+
+    requiresAuth:
+      true,
+
+    permission:
+      'finance.wallet.view',
+  },
+},
+{
+  path:
+    '/finance/wallets',
+
+  name:
+    'FinanceWallets',
+
+  component:
+    () =>
+      import(
+        '../../views/finance/FinanceWalletListView.vue'
+      ),
+
+  meta: {
+    title:
+      '錢包管理',
+
+    requiresAuth:
+      true,
+
+    permission:
+      'finance.wallet.view',
+  },
+},
+
+{
+  path:
+    '/finance/wallets/:id',
+
+  name:
+    'FinanceWalletDetail',
+
+  component:
+    () =>
+      import(
+        '../../views/finance/FinanceWalletDetailView.vue'
+      ),
+
+  meta: {
+    title:
+      '錢包詳情',
+
+    requiresAuth:
+      true,
+
+    permission:
+      'finance.wallet.view',
+  },
+},
   ]
 
 export default financeRoutes

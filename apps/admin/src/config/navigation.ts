@@ -56,6 +56,16 @@ export const adminNavigation: NavigationItem[] = [
   permission:
     'finance.transaction.view',
 },
+{
+  label:
+    '錢包管理',
+
+  path:
+    '/finance/wallets',
+
+  permission:
+    'finance.wallet.view',
+},
   {
     label: '文旅管理',
     path: '/travel',
