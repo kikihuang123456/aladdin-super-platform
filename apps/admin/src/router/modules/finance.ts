@@ -230,6 +230,55 @@ const financeRoutes:
       'finance.withdraw.view',
   },
 },
+{
+  path:
+    '/finance/refunds',
+
+  name:
+    'FinanceRefunds',
+
+  component:
+    () =>
+      import(
+        '../../views/finance/FinanceRefundListView.vue'
+      ),
+
+  meta: {
+    title:
+      '退款管理',
+
+    requiresAuth:
+      true,
+
+    permission:
+      'finance.refund.view',
+  },
+},
+
+{
+  path:
+    '/finance/refunds/:id',
+
+  name:
+    'FinanceRefundDetail',
+
+  component:
+    () =>
+      import(
+        '../../views/finance/FinanceRefundDetailView.vue'
+      ),
+
+  meta: {
+    title:
+      '退款申請詳情',
+
+    requiresAuth:
+      true,
+
+    permission:
+      'finance.refund.view',
+  },
+},
   ]
 
 export default financeRoutes
