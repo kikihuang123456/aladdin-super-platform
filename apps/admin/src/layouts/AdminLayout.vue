@@ -1,38 +1,40 @@
 <template>
   <div class="layout">
     <aside class="sidebar">
-      <div class="logo">
-        阿拉丁
-      </div>
+      <div class="sidebar__inner">
+        <div class="logo">
+          阿拉丁
+        </div>
 
-      <nav class="navigation">
-        <template
-          v-for="item in visibleNavigation"
-          :key="item.path"
-        >
-          <RouterLink
-            v-if="!item.disabled"
-            :to="item.path"
+        <nav class="navigation">
+          <template
+            v-for="item in visibleNavigation"
+            :key="item.path"
           >
-            {{ item.label }}
-          </RouterLink>
-
-          <button
-            v-else
-            class="navigation__disabled"
-            type="button"
-            disabled
-          >
-            <span>
+            <RouterLink
+              v-if="!item.disabled"
+              :to="item.path"
+            >
               {{ item.label }}
-            </span>
+            </RouterLink>
 
-            <small>
-              建置中
-            </small>
-          </button>
-        </template>
-      </nav>
+            <button
+              v-else
+              class="navigation__disabled"
+              type="button"
+              disabled
+            >
+              <span>
+                {{ item.label }}
+              </span>
+
+              <small>
+                建置中
+              </small>
+            </button>
+          </template>
+        </nav>
+      </div>
     </aside>
 
     <main class="content">
@@ -52,9 +54,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import {
+  computed,
+  onMounted,
+} from 'vue'
 
-import UserMenu from '../components/auth/UserMenu.vue'
+import UserMenu
+  from '../components/auth/UserMenu.vue'
 
 import {
   adminNavigation,
@@ -113,20 +119,41 @@ onMounted(async () => {
 <style scoped>
 .layout {
   display: flex;
+  width: 100%;
   min-height: 100vh;
+  align-items: stretch;
+  background: #f5f7fb;
 }
 
 .sidebar {
+  position: relative;
   width: 240px;
-  flex-shrink: 0;
-  padding: 32px 20px;
+  min-width: 240px;
+  flex: 0 0 240px;
+  align-self: stretch;
   background: #111827;
   color: #ffffff;
+}
+
+.sidebar__inner {
+  position: sticky;
+  top: 0;
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  min-height: 100vh;
+  padding: 32px 20px;
+  box-sizing: border-box;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #111827;
 }
 
 .logo {
   margin-bottom: 40px;
   padding: 0 14px;
+  color: #ffffff;
   font-size: 24px;
   font-weight: 800;
   letter-spacing: 0.04em;
@@ -134,6 +161,8 @@ onMounted(async () => {
 
 .navigation {
   display: flex;
+  width: 100%;
+  flex: 1;
   flex-direction: column;
   gap: 12px;
 }
@@ -146,6 +175,7 @@ onMounted(async () => {
   padding: 12px 14px;
   border: 0;
   border-radius: 10px;
+  box-sizing: border-box;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -186,7 +216,9 @@ onMounted(async () => {
 }
 
 .content {
+  width: 0;
   min-width: 0;
+  min-height: 100vh;
   flex: 1;
   background: #f5f7fb;
 }
@@ -196,6 +228,7 @@ onMounted(async () => {
   min-height: 98px;
   padding: 24px 32px;
   border-bottom: 1px solid #e5e7eb;
+  box-sizing: border-box;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
@@ -210,17 +243,52 @@ onMounted(async () => {
 }
 
 .page {
+  min-width: 0;
+  min-height: calc(100vh - 98px);
   padding: 32px;
+  box-sizing: border-box;
+  background: #f5f7fb;
+}
+
+.sidebar__inner::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar__inner::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar__inner::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #374151;
+}
+
+.sidebar__inner::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
 }
 
 @media (max-width: 900px) {
   .layout {
+    min-height: 100vh;
     flex-direction: column;
   }
 
   .sidebar {
+    position: relative;
     width: 100%;
+    min-width: 0;
+    flex: none;
+    align-self: auto;
+  }
+
+  .sidebar__inner {
+    position: relative;
+    top: auto;
+    width: 100%;
+    height: auto;
+    min-height: 0;
     padding: 20px;
+    overflow: visible;
   }
 
   .logo {
@@ -233,12 +301,18 @@ onMounted(async () => {
       repeat(2, minmax(0, 1fr));
   }
 
+  .content {
+    width: 100%;
+    min-height: 0;
+  }
+
   .header {
     min-height: 80px;
     padding: 18px 20px;
   }
 
   .page {
+    min-height: calc(100vh - 80px);
     padding: 20px;
   }
 }

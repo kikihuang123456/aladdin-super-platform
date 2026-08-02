@@ -4,7 +4,7 @@
       <section class="page-header">
         <div>
           <p class="page-eyebrow">
-            MERCHANT MANAGEMENT
+            MERCHANT ERP
           </p>
 
           <h1>
@@ -12,403 +12,844 @@
           </h1>
 
           <p class="page-description">
-            管理平台合作商家、店鋪資訊、審核狀態、營業狀態與商城上架權限。
+            管理商家基本資料、市場區域、審核狀態與營運狀態。
           </p>
         </div>
 
+        <div class="header-actions">
+          <button
+            class="refresh-button"
+            type="button"
+            :disabled="store.isLoading"
+            @click="handleRefresh"
+          >
+            重新整理
+          </button>
+
+          <button
+            v-if="
+              permissionStore.hasPermission(
+                'merchant.create',
+              )
+            "
+            class="primary-button"
+            type="button"
+          >
+            新增商家
+          </button>
+        </div>
+      </section>
+
+      <section class="stats-grid">
+        <article class="stat-card">
+          <span>
+            商家總數
+          </span>
+
+          <strong>
+            {{ store.statistics.total }}
+          </strong>
+        </article>
+
+        <article class="stat-card">
+          <span>
+            待審核
+          </span>
+
+          <strong>
+            {{ store.statistics.pending }}
+          </strong>
+        </article>
+
+        <article class="stat-card">
+          <span>
+            已通過
+          </span>
+
+          <strong>
+            {{ store.statistics.approved }}
+          </strong>
+        </article>
+
+        <article class="stat-card">
+          <span>
+            營運中
+          </span>
+
+          <strong>
+            {{ store.statistics.active }}
+          </strong>
+        </article>
+
+        <article class="stat-card">
+          <span>
+            已暫停
+          </span>
+
+          <strong>
+            {{ store.statistics.suspended }}
+          </strong>
+        </article>
+
+        <article class="stat-card">
+          <span>
+            已拒絕
+          </span>
+
+          <strong>
+            {{ store.statistics.rejected }}
+          </strong>
+        </article>
+
+        <article class="stat-card">
+          <span>
+            已停用
+          </span>
+
+          <strong>
+            {{ store.statistics.disabled }}
+          </strong>
+        </article>
+
+        <article class="stat-card">
+          <span>
+            台灣市場
+          </span>
+
+          <strong>
+            {{ store.statistics.taiwan }}
+          </strong>
+        </article>
+
+        <article class="stat-card">
+          <span>
+            中國市場
+          </span>
+
+          <strong>
+            {{ store.statistics.china }}
+          </strong>
+        </article>
+
+        <article class="stat-card">
+          <span>
+            跨境市場
+          </span>
+
+          <strong>
+            {{ store.statistics.crossBorder }}
+          </strong>
+        </article>
+      </section>
+
+      <section class="filter-card">
+        <input
+          v-model="keyword"
+          type="search"
+          placeholder="搜尋商家編號、名稱、聯絡人、電話或統編"
+          :disabled="store.isLoading"
+          @keyup.enter="handleSearch"
+        >
+
+        <select
+          v-model="merchantType"
+          :disabled="store.isLoading"
+          @change="handleMerchantTypeChange"
+        >
+          <option value="">
+            全部商家類型
+          </option>
+
+          <option value="individual">
+            個人商家
+          </option>
+
+          <option value="company">
+            公司商家
+          </option>
+
+          <option value="brand">
+            品牌商家
+          </option>
+
+          <option value="platform">
+            平台直營
+          </option>
+        </select>
+
+        <select
+          v-model="market"
+          :disabled="store.isLoading"
+          @change="handleMarketChange"
+        >
+          <option value="">
+            全部市場
+          </option>
+
+          <option value="taiwan">
+            台灣
+          </option>
+
+          <option value="china">
+            中國
+          </option>
+
+          <option value="cross_border">
+            跨境
+          </option>
+        </select>
+
+        <select
+          v-model="status"
+          :disabled="store.isLoading"
+          @change="handleStatusChange"
+        >
+          <option value="">
+            全部狀態
+          </option>
+
+          <option value="pending">
+            待審核
+          </option>
+
+          <option value="approved">
+            已通過
+          </option>
+
+          <option value="active">
+            營運中
+          </option>
+
+          <option value="suspended">
+            已暫停
+          </option>
+
+          <option value="rejected">
+            已拒絕
+          </option>
+
+          <option value="disabled">
+            已停用
+          </option>
+        </select>
+
+        <select
+          v-model.number="pageSize"
+          :disabled="store.isLoading"
+          @change="handlePageSizeChange"
+        >
+          <option :value="20">
+            20 筆
+          </option>
+
+          <option :value="50">
+            50 筆
+          </option>
+
+          <option :value="100">
+            100 筆
+          </option>
+        </select>
+
         <button
-          v-if="permissionStore.hasPermission('merchant.create')"
           class="primary-button"
           type="button"
+          :disabled="store.isLoading"
+          @click="handleSearch"
         >
-          新增商家
+          搜尋
+        </button>
+
+        <button
+          type="button"
+          :disabled="store.isLoading"
+          @click="handleReset"
+        >
+          重設
         </button>
       </section>
 
-      <section class="summary-grid">
-        <article class="summary-card">
-          <span>合作商家</span>
-          <strong>326</strong>
-          <small>已建立商家帳號</small>
-        </article>
-
-        <article class="summary-card">
-          <span>待審核</span>
-          <strong>18</strong>
-          <small>等待平台審核</small>
-        </article>
-
-        <article class="summary-card">
-          <span>營業中</span>
-          <strong>291</strong>
-          <small>目前正常營運</small>
-        </article>
-
-        <article class="summary-card">
-          <span>已停用</span>
-          <strong>17</strong>
-          <small>限制後台與上架權限</small>
-        </article>
-      </section>
-
-      <section class="merchant-card">
-        <div class="table-toolbar">
-          <div>
-            <h2>
-              商家列表
-            </h2>
-
-            <p>
-              目前為 Sprint 2 靜態展示資料
-            </p>
-          </div>
-
-          <div class="toolbar-actions">
-            <input
-              v-model.trim="keyword"
-              class="search-input"
-              type="search"
-              placeholder="搜尋商家名稱、編號或聯絡人"
-            >
-
-            <select
-              v-model="reviewFilter"
-              class="filter-select"
-            >
-              <option value="">
-                全部審核狀態
-              </option>
-
-              <option value="已通過">
-                已通過
-              </option>
-
-              <option value="待審核">
-                待審核
-              </option>
-
-              <option value="已退回">
-                已退回
-              </option>
-            </select>
-
-            <select
-              v-model="businessFilter"
-              class="filter-select"
-            >
-              <option value="">
-                全部營業狀態
-              </option>
-
-              <option value="營業中">
-                營業中
-              </option>
-
-              <option value="暫停營業">
-                暫停營業
-              </option>
-
-              <option value="已停用">
-                已停用
-              </option>
-            </select>
-          </div>
+      <section class="table-card">
+        <div
+          v-if="store.error"
+          class="error-panel"
+          role="alert"
+        >
+          {{ store.error }}
         </div>
 
-        <div class="table-wrapper">
+        <div
+          v-if="store.isLoading"
+          class="state-panel"
+        >
+          正在載入商家資料...
+        </div>
+
+        <div
+          v-else-if="
+            !store.error &&
+            store.merchants.length === 0
+          "
+          class="state-panel"
+        >
+          暫無商家資料
+        </div>
+
+        <div
+          v-else-if="!store.error"
+          class="table-wrapper"
+        >
           <table>
             <thead>
               <tr>
                 <th>商家</th>
                 <th>商家編號</th>
                 <th>商家類型</th>
+                <th>市場</th>
                 <th>聯絡人</th>
-                <th>聯絡電話</th>
-                <th>審核狀態</th>
-                <th>營業狀態</th>
-                <th>建立日期</th>
+                <th>聯絡方式</th>
+                <th>公司／品牌資訊</th>
+                <th>狀態</th>
+                <th>建立時間</th>
                 <th>操作</th>
               </tr>
             </thead>
 
             <tbody>
               <tr
-                v-for="merchant in filteredMerchants"
+                v-for="merchant in store.merchants"
                 :key="merchant.id"
               >
                 <td>
                   <div class="merchant-info">
-                    <span class="merchant-logo">
-                      {{ merchant.shortName }}
-                    </span>
+                    <div
+                      v-if="merchant.logoUrl"
+                      class="merchant-logo merchant-logo--image"
+                    >
+                      <img
+                        :src="merchant.logoUrl"
+                        :alt="merchant.name"
+                      >
+                    </div>
+
+                    <div
+                      v-else
+                      class="merchant-logo"
+                    >
+                      {{
+                        merchantInitial(
+                          merchant.name,
+                        )
+                      }}
+                    </div>
 
                     <div>
                       <strong>
                         {{ merchant.name }}
                       </strong>
 
-                      <small>
-                        {{ merchant.market }}
-                      </small>
+                      <span>
+                        {{
+                          merchant.legalName ||
+                          '-'
+                        }}
+                      </span>
                     </div>
                   </div>
                 </td>
 
                 <td>
-                  {{ merchant.code }}
+                  <strong class="merchant-no">
+                    {{ merchant.merchantNo }}
+                  </strong>
                 </td>
 
                 <td>
-                  {{ merchant.type }}
+                  {{
+                    merchantTypeText(
+                      merchant.merchantType,
+                    )
+                  }}
                 </td>
 
                 <td>
-                  {{ merchant.contactName }}
+                  {{
+                    marketText(
+                      merchant.market,
+                    )
+                  }}
                 </td>
 
                 <td>
-                  {{ merchant.phone }}
+                  {{
+                    merchant.contactName ||
+                    '-'
+                  }}
+                </td>
+
+                <td>
+                  <div class="contact-info">
+                    <span>
+                      {{
+                        merchant.contactPhone ||
+                        '-'
+                      }}
+                    </span>
+
+                    <small>
+                      {{
+                        merchant.contactEmail ||
+                        '-'
+                      }}
+                    </small>
+                  </div>
+                </td>
+
+                <td>
+                  <div class="company-info">
+                    <span>
+                      執照：
+                      {{
+                        merchant.businessLicenseNo ||
+                        '-'
+                      }}
+                    </span>
+
+                    <small>
+                      稅號：
+                      {{
+                        merchant.taxNo ||
+                        '-'
+                      }}
+                    </small>
+                  </div>
                 </td>
 
                 <td>
                   <span
                     class="status-badge"
-                    :class="getReviewClass(merchant.reviewStatus)"
+                    :class="
+                      `status-badge--${merchant.status}`
+                    "
                   >
-                    {{ merchant.reviewStatus }}
+                    {{
+                      statusText(
+                        merchant.status,
+                      )
+                    }}
                   </span>
                 </td>
 
                 <td>
-                  <span
-                    class="status-badge"
-                    :class="getBusinessClass(merchant.businessStatus)"
-                  >
-                    {{ merchant.businessStatus }}
-                  </span>
-                </td>
-
-                <td>
-                  {{ merchant.createdAt }}
+                  {{
+                    formatDate(
+                      merchant.createdAt,
+                    )
+                  }}
                 </td>
 
                 <td>
                   <div class="action-buttons">
                     <button
-                      class="text-button"
+                      class="view-button"
                       type="button"
+                      @click="
+                        handleView(
+                          merchant.id,
+                        )
+                      "
                     >
                       查看
                     </button>
 
                     <button
                       v-if="
-                        permissionStore.hasPermission(
-                          'merchant.update',
-                        )
-                      "
-                      class="text-button"
-                      type="button"
-                    >
-                      編輯
-                    </button>
-
-                    <button
-                      v-if="
-                        merchant.reviewStatus === '待審核' &&
+                        merchant.status ===
+                          'pending' &&
                         permissionStore.hasPermission(
                           'merchant.approve',
                         )
                       "
-                      class="text-button text-button--approve"
+                      class="review-button"
                       type="button"
+                      @click="
+                        handleView(
+                          merchant.id,
+                        )
+                      "
                     >
                       審核
                     </button>
                   </div>
                 </td>
               </tr>
-
-              <tr v-if="filteredMerchants.length === 0">
-                <td
-                  class="empty-state"
-                  colspan="9"
-                >
-                  找不到符合條件的商家資料
-                </td>
-              </tr>
             </tbody>
           </table>
         </div>
+
+        <footer
+          v-if="
+            !store.isLoading &&
+            !store.error &&
+            store.pagination.total > 0
+          "
+          class="pagination"
+        >
+          <span>
+            共
+            {{ store.pagination.total }}
+            筆
+          </span>
+
+          <div>
+            <button
+              type="button"
+              :disabled="
+                !store.hasPreviousPage
+              "
+              @click="handlePreviousPage"
+            >
+              上一頁
+            </button>
+
+            <span>
+              第
+              {{ store.pagination.page }}
+              /
+              {{
+                store.pagination.totalPages ||
+                1
+              }}
+              頁
+            </span>
+
+            <button
+              type="button"
+              :disabled="
+                !store.hasNextPage
+              "
+              @click="handleNextPage"
+            >
+              下一頁
+            </button>
+          </div>
+        </footer>
       </section>
     </div>
   </AdminLayout>
 </template>
-
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import {
+  onBeforeUnmount,
+  onMounted,
+  ref,
+} from 'vue'
 
-import AdminLayout from '../../layouts/AdminLayout.vue'
-import { usePermissionStore } from '../../stores/permission'
+import {
+  useRouter,
+} from 'vue-router'
 
-type ReviewStatus =
-  | '已通過'
-  | '待審核'
-  | '已退回'
+import AdminLayout
+  from '../../layouts/AdminLayout.vue'
 
-type BusinessStatus =
-  | '營業中'
-  | '暫停營業'
-  | '已停用'
+import {
+  useMerchantStore,
+} from '../../stores/merchant'
 
-interface MerchantRow {
-  id: number
-  code: string
-  name: string
-  shortName: string
-  market: string
-  type: string
-  contactName: string
-  phone: string
-  reviewStatus: ReviewStatus
-  businessStatus: BusinessStatus
-  createdAt: string
-}
+import {
+  usePermissionStore,
+} from '../../stores/permission'
+
+import type {
+  MerchantMarket,
+  MerchantStatus,
+  MerchantType,
+} from '../../types/merchant'
+
+const router =
+  useRouter()
+
+const store =
+  useMerchantStore()
 
 const permissionStore =
   usePermissionStore()
 
-const keyword = ref('')
+const keyword =
+  ref('')
 
-const reviewFilter =
-  ref<ReviewStatus | ''>('')
+const merchantType =
+  ref<
+    MerchantType | ''
+  >('')
 
-const businessFilter =
-  ref<BusinessStatus | ''>('')
+const market =
+  ref<
+    MerchantMarket | ''
+  >('')
 
-const merchants: MerchantRow[] = [
-  {
-    id: 1,
-    code: 'MER-100001',
-    name: '杭州博潾數字科技有限公司',
-    shortName: '博',
-    market: '中國大陸市場',
-    type: '平台直營',
-    contactName: '黃湘涵',
-    phone: '151-1112-6171',
-    reviewStatus: '已通過',
-    businessStatus: '營業中',
-    createdAt: '2026-07-31',
-  },
-  {
-    id: 2,
-    code: 'MER-100002',
-    name: '台灣阿拉丁甄選商城',
-    shortName: '台',
-    market: '台灣市場',
-    type: '品牌商家',
-    contactName: '周連華',
-    phone: '0930-569-218',
-    reviewStatus: '已通過',
-    businessStatus: '營業中',
-    createdAt: '2026-07-30',
-  },
-  {
-    id: 3,
-    code: 'MER-100003',
-    name: '景德鎮陶瓷生活館',
-    shortName: '瓷',
-    market: '中國大陸市場',
-    type: '供應商',
-    contactName: '陳先生',
-    phone: '138-0000-8812',
-    reviewStatus: '待審核',
-    businessStatus: '暫停營業',
-    createdAt: '2026-07-29',
-  },
-  {
-    id: 4,
-    code: 'MER-100004',
-    name: '台北精品生活選物店',
-    shortName: '北',
-    market: '台灣市場',
-    type: '一般商家',
-    contactName: '林怡君',
-    phone: '0922-456-789',
-    reviewStatus: '已退回',
-    businessStatus: '已停用',
-    createdAt: '2026-07-28',
-  },
-]
+const status =
+  ref<
+    MerchantStatus | ''
+  >('')
 
-const filteredMerchants = computed(() => {
-  const normalizedKeyword =
-    keyword.value
-      .trim()
-      .toLowerCase()
+const pageSize =
+  ref(20)
 
-  return merchants.filter((merchant) => {
-    const matchesKeyword =
-      !normalizedKeyword ||
-      merchant.name
-        .toLowerCase()
-        .includes(normalizedKeyword) ||
-      merchant.code
-        .toLowerCase()
-        .includes(normalizedKeyword) ||
-      merchant.contactName
-        .toLowerCase()
-        .includes(normalizedKeyword)
+onMounted(async () => {
+  keyword.value =
+    store.filters.keyword ||
+    ''
 
-    const matchesReview =
-      !reviewFilter.value ||
-      merchant.reviewStatus ===
-        reviewFilter.value
+  merchantType.value =
+    store.filters.merchantType ||
+    ''
 
-    const matchesBusiness =
-      !businessFilter.value ||
-      merchant.businessStatus ===
-        businessFilter.value
+  market.value =
+    store.filters.market ||
+    ''
 
-    return (
-      matchesKeyword &&
-      matchesReview &&
-      matchesBusiness
-    )
-  })
+  status.value =
+    store.filters.status ||
+    ''
+
+  pageSize.value =
+    store.filters.pageSize
+
+  await store.fetchMerchants()
 })
 
-function getReviewClass(
-  status: ReviewStatus,
-): string {
-  switch (status) {
-    case '已通過':
-      return 'status-badge--success'
+onBeforeUnmount(() => {
+  store.clearError()
+  store.clearMutationMessage()
+})
 
-    case '待審核':
-      return 'status-badge--warning'
-
-    case '已退回':
-      return 'status-badge--danger'
-  }
+async function handleRefresh():
+  Promise<void> {
+  await store.fetchMerchants()
 }
 
-function getBusinessClass(
-  status: BusinessStatus,
-): string {
-  switch (status) {
-    case '營業中':
-      return 'status-badge--success'
+async function handleSearch():
+  Promise<void> {
+  await store.searchMerchants(
+    keyword.value,
+  )
+}
 
-    case '暫停營業':
-      return 'status-badge--warning'
+async function handleMerchantTypeChange():
+  Promise<void> {
+  await store.setMerchantTypeFilter(
+    merchantType.value,
+  )
+}
 
-    case '已停用':
-      return 'status-badge--neutral'
+async function handleMarketChange():
+  Promise<void> {
+  await store.setMarketFilter(
+    market.value,
+  )
+}
+
+async function handleStatusChange():
+  Promise<void> {
+  await store.setStatusFilter(
+    status.value,
+  )
+}
+
+async function handlePageSizeChange():
+  Promise<void> {
+  await store.setPageSize(
+    pageSize.value,
+  )
+}
+
+async function handleReset():
+  Promise<void> {
+  keyword.value =
+    ''
+
+  merchantType.value =
+    ''
+
+  market.value =
+    ''
+
+  status.value =
+    ''
+
+  pageSize.value =
+    20
+
+  await store.resetFilters()
+}
+
+async function handlePreviousPage():
+  Promise<void> {
+  if (!store.hasPreviousPage) {
+    return
   }
+
+  await store.setPage(
+    store.pagination.page - 1,
+  )
+}
+
+async function handleNextPage():
+  Promise<void> {
+  if (!store.hasNextPage) {
+    return
+  }
+
+  await store.setPage(
+    store.pagination.page + 1,
+  )
+}
+
+function handleView(
+  merchantId: string,
+): void {
+  router.push(
+    `/merchants/${merchantId}`,
+  )
+}
+
+function merchantInitial(
+  name: string,
+): string {
+  const normalizedName =
+    name.trim()
+
+  if (!normalizedName) {
+    return '商'
+  }
+
+  return normalizedName
+    .slice(
+      0,
+      1,
+    )
+    .toUpperCase()
+}
+
+function merchantTypeText(
+  value:
+    MerchantType,
+): string {
+  const map:
+    Record<
+      MerchantType,
+      string
+    > = {
+      individual:
+        '個人商家',
+
+      company:
+        '公司商家',
+
+      brand:
+        '品牌商家',
+
+      platform:
+        '平台直營',
+    }
+
+  return map[value]
+}
+
+function marketText(
+  value:
+    MerchantMarket,
+): string {
+  const map:
+    Record<
+      MerchantMarket,
+      string
+    > = {
+      taiwan:
+        '台灣',
+
+      china:
+        '中國',
+
+      cross_border:
+        '跨境',
+    }
+
+  return map[value]
+}
+
+function statusText(
+  value:
+    MerchantStatus,
+): string {
+  const map:
+    Record<
+      MerchantStatus,
+      string
+    > = {
+      pending:
+        '待審核',
+
+      approved:
+        '已通過',
+
+      rejected:
+        '已拒絕',
+
+      active:
+        '營運中',
+
+      suspended:
+        '已暫停',
+
+      disabled:
+        '已停用',
+    }
+
+  return map[value]
+}
+
+function formatDate(
+  value:
+    string | null | undefined,
+): string {
+  if (!value) {
+    return '-'
+  }
+
+  const date =
+    new Date(value)
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return '-'
+  }
+
+  return date.toLocaleString(
+    'zh-TW',
+    {
+      year:
+        'numeric',
+
+      month:
+        '2-digit',
+
+      day:
+        '2-digit',
+
+      hour:
+        '2-digit',
+
+      minute:
+        '2-digit',
+    },
+  )
 }
 </script>
-
 <style scoped>
 .merchant-page {
   display: flex;
@@ -423,18 +864,19 @@ function getBusinessClass(
   gap: 24px;
 }
 
-.page-header h1 {
-  margin: 4px 0 8px;
-  color: #0f172a;
-  font-size: 34px;
-}
-
 .page-eyebrow {
   margin: 0;
   color: #3157d6;
   font-size: 13px;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
+}
+
+.page-header h1 {
+  margin: 8px 0;
+  color: #0f172a;
+  font-size: 34px;
+  font-weight: 800;
 }
 
 .page-description {
@@ -443,127 +885,124 @@ function getBusinessClass(
   line-height: 1.7;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.refresh-button,
 .primary-button {
-  flex-shrink: 0;
-  padding: 12px 20px;
-  border: 0;
-  border-radius: 12px;
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.refresh-button {
+  border: 1px solid #dbe2ea;
+  background: #ffffff;
+  color: #334155;
+}
+
+.primary-button {
+  border: 1px solid #3157d6;
   background: #3157d6;
   color: #ffffff;
-  cursor: pointer;
-  font-size: 15px;
-  font-weight: 700;
-  transition:
-    background-color 0.2s ease,
-    transform 0.2s ease;
 }
 
-.primary-button:hover {
-  background: #2547bd;
-  transform: translateY(-1px);
+.refresh-button:disabled,
+.primary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
-.summary-grid {
+.stats-grid {
   display: grid;
   grid-template-columns:
-    repeat(4, minmax(0, 1fr));
+    repeat(5, minmax(0, 1fr));
   gap: 18px;
 }
 
-.summary-card {
-  display: flex;
-  min-height: 140px;
-  flex-direction: column;
+.stat-card {
   padding: 22px;
   border: 1px solid #e5e7eb;
   border-radius: 18px;
   background: #ffffff;
-  box-shadow:
-    0 10px 25px
-    rgba(15, 23, 42, 0.05);
 }
 
-.summary-card span {
+.stat-card span {
+  display: block;
+  margin-bottom: 10px;
   color: #64748b;
-  font-size: 14px;
+  font-size: 13px;
+}
+
+.stat-card strong {
+  color: #0f172a;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.filter-card {
+  display: flex;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: #ffffff;
+}
+
+.filter-card input,
+.filter-card select,
+.filter-card button {
+  min-height: 42px;
+  border-radius: 10px;
+  font: inherit;
+}
+
+.filter-card input,
+.filter-card select {
+  padding: 0 14px;
+  border: 1px solid #dbe2ea;
+  background: #ffffff;
+}
+
+.filter-card input[type='search'] {
+  min-width: 320px;
+  flex: 1;
+}
+
+.filter-card button {
+  padding: 0 18px;
+  border: 1px solid #dbe2ea;
+  background: #ffffff;
+  cursor: pointer;
   font-weight: 700;
 }
 
-.summary-card strong {
-  margin: 14px 0 8px;
-  color: #0f172a;
-  font-size: 32px;
+.filter-card .primary-button {
+  border-color: #3157d6;
+  background: #3157d6;
+  color: #ffffff;
 }
 
-.summary-card small {
-  color: #94a3b8;
+.filter-card button:disabled,
+.filter-card input:disabled,
+.filter-card select:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
-.merchant-card {
+.table-card {
   overflow: hidden;
   border: 1px solid #e5e7eb;
   border-radius: 18px;
   background: #ffffff;
-  box-shadow:
-    0 10px 25px
-    rgba(15, 23, 42, 0.05);
-}
-
-.table-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 22px 24px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.table-toolbar h2 {
-  margin: 0;
-  color: #0f172a;
-}
-
-.table-toolbar p {
-  margin: 6px 0 0;
-  color: #94a3b8;
-  font-size: 13px;
-}
-
-.toolbar-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.search-input,
-.filter-select {
-  min-height: 42px;
-  border: 1px solid #dbe2ea;
-  border-radius: 10px;
-  background: #ffffff;
-  color: #0f172a;
-  outline: none;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.search-input {
-  width: 270px;
-  padding: 0 14px;
-}
-
-.filter-select {
-  padding: 0 12px;
-}
-
-.search-input:focus,
-.filter-select:focus {
-  border-color: #3157d6;
-  box-shadow:
-    0 0 0 3px
-    rgba(49, 87, 214, 0.12);
 }
 
 .table-wrapper {
@@ -575,33 +1014,30 @@ table {
   border-collapse: collapse;
 }
 
+thead {
+  background: #f8fafc;
+}
+
 th,
 td {
-  padding: 16px 20px;
-  border-bottom: 1px solid #eef2f7;
+  padding: 16px;
   text-align: left;
   white-space: nowrap;
 }
 
 th {
-  background: #f8fafc;
   color: #64748b;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 td {
+  border-top: 1px solid #eef2f7;
   color: #334155;
-  font-size: 14px;
-}
-
-tbody tr {
-  transition:
-    background-color 0.2s ease;
 }
 
 tbody tr:hover {
-  background: #f8fafc;
+  background: #f8fbff;
 }
 
 .merchant-info {
@@ -610,57 +1046,108 @@ tbody tr:hover {
   gap: 12px;
 }
 
-.merchant-info div {
+.merchant-info > div:last-child {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: 4px;
 }
 
 .merchant-info strong {
+  max-width: 220px;
+  overflow: hidden;
   color: #0f172a;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.merchant-info small {
+.merchant-info span {
+  max-width: 220px;
+  overflow: hidden;
   color: #94a3b8;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .merchant-logo {
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
   place-items: center;
+  overflow: hidden;
   border-radius: 12px;
   background: #eef2ff;
   color: #3157d6;
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 800;
+}
+
+.merchant-logo--image {
+  background: #ffffff;
+}
+
+.merchant-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.merchant-no {
+  color: #3157d6;
+  font-weight: 800;
+}
+
+.contact-info,
+.company-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.contact-info small,
+.company-info small {
+  color: #94a3b8;
+  font-size: 12px;
 }
 
 .status-badge {
   display: inline-flex;
-  padding: 5px 10px;
+  min-height: 28px;
+  padding: 5px 12px;
   border-radius: 999px;
+  align-items: center;
   font-size: 12px;
   font-weight: 800;
 }
 
-.status-badge--success {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.status-badge--warning {
+.status-badge--pending {
   background: #fef3c7;
   color: #b45309;
 }
 
-.status-badge--danger {
+.status-badge--approved {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-badge--active {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.status-badge--suspended {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.status-badge--rejected {
   background: #fee2e2;
   color: #b91c1c;
 }
 
-.status-badge--neutral {
+.status-badge--disabled {
   background: #e2e8f0;
   color: #475569;
 }
@@ -671,71 +1158,123 @@ tbody tr:hover {
   gap: 8px;
 }
 
-.text-button {
-  padding: 7px 12px;
+.view-button,
+.review-button {
+  min-height: 36px;
+  padding: 0 14px;
   border: 0;
   border-radius: 8px;
-  background: #eef2ff;
-  color: #3157d6;
   cursor: pointer;
+  font: inherit;
   font-weight: 700;
-  transition:
-    background-color 0.2s ease,
-    transform 0.2s ease;
 }
 
-.text-button:hover {
-  background: #dfe6ff;
-  transform: translateY(-1px);
+.view-button {
+  background: #3157d6;
+  color: #ffffff;
 }
 
-.text-button--approve {
+.review-button {
   background: #dcfce7;
   color: #15803d;
 }
 
-.text-button--approve:hover {
-  background: #bbf7d0;
+.error-panel {
+  padding: 18px;
+  border-bottom: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
-.empty-state {
-  padding: 42px;
-  color: #94a3b8;
+.state-panel {
+  padding: 48px 24px;
+  color: #64748b;
   text-align: center;
 }
 
-@media (max-width: 1200px) {
-  .summary-grid {
+.pagination {
+  display: flex;
+  padding: 20px;
+  border-top: 1px solid #eef2f7;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.pagination > div {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.pagination button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #dbe2ea;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+  font: inherit;
+}
+
+.pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (max-width: 1400px) {
+  .stats-grid {
     grid-template-columns:
-      repeat(2, minmax(0, 1fr));
-  }
-
-  .table-toolbar {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .toolbar-actions {
-    justify-content: flex-start;
+      repeat(3, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 1100px) {
+  .stats-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
   .page-header {
     flex-direction: column;
   }
 
-  .summary-grid {
+  .header-actions {
+    width: 100%;
+  }
+
+  .header-actions button {
+    flex: 1;
+  }
+
+  .stats-grid {
     grid-template-columns: 1fr;
   }
 
-  .toolbar-actions {
+  .filter-card {
+    align-items: stretch;
     flex-direction: column;
   }
 
-  .search-input,
-  .filter-select {
+  .filter-card input,
+  .filter-card select,
+  .filter-card button {
     width: 100%;
+  }
+
+  .pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pagination > div {
+    justify-content: space-between;
+  }
+
+  table {
+    min-width: 1500px;
   }
 }
 </style>
