@@ -377,6 +377,55 @@ const financeRoutes:
       'finance.report.view',
   },
 },
+{
+  path:
+    '/finance/audit-logs',
+
+  name:
+    'FinanceAuditLogs',
+
+  component:
+    () =>
+      import(
+        '../../views/finance/FinanceAuditLogListView.vue'
+      ),
+
+  meta: {
+    title:
+      '財務稽核紀錄',
+
+    requiresAuth:
+      true,
+
+    permission:
+      'finance.audit.view',
+  },
+},
+
+{
+  path:
+    '/finance/audit-logs/:id',
+
+  name:
+    'FinanceAuditLogDetail',
+
+  component:
+    () =>
+      import(
+        '../../views/finance/FinanceAuditLogDetailView.vue'
+      ),
+
+  meta: {
+    title:
+      '財務稽核詳情',
+
+    requiresAuth:
+      true,
+
+    permission:
+      'finance.audit.view',
+  },
+},
   ]
 
 export default financeRoutes

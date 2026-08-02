@@ -96,6 +96,16 @@ export const adminNavigation: NavigationItem[] = [
   permission:
     'finance.report.view',
 },
+{
+  label:
+    '財務稽核',
+
+  path:
+    '/finance/audit-logs',
+
+  permission:
+    'finance.audit.view',
+},
   {
     label: '文旅管理',
     path: '/travel',
