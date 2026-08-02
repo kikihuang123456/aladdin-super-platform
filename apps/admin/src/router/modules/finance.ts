@@ -181,6 +181,55 @@ const financeRoutes:
       'finance.wallet.view',
   },
 },
+{
+  path:
+    '/finance/withdraws',
+
+  name:
+    'FinanceWithdraws',
+
+  component:
+    () =>
+      import(
+        '../../views/finance/FinanceWithdrawListView.vue'
+      ),
+
+  meta: {
+    title:
+      '提款管理',
+
+    requiresAuth:
+      true,
+
+    permission:
+      'finance.withdraw.view',
+  },
+},
+
+{
+  path:
+    '/finance/withdraws/:id',
+
+  name:
+    'FinanceWithdrawDetail',
+
+  component:
+    () =>
+      import(
+        '../../views/finance/FinanceWithdrawDetailView.vue'
+      ),
+
+  meta: {
+    title:
+      '提款申請詳情',
+
+    requiresAuth:
+      true,
+
+    permission:
+      'finance.withdraw.view',
+  },
+},
   ]
 
 export default financeRoutes
