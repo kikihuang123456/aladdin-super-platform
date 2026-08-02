@@ -23,6 +23,11 @@ export const adminNavigation: NavigationItem[] = [
     permission: 'merchant.view',
   },
   {
+  label: '商家商品管理',
+  path: '/merchants/products',
+  permission: 'merchant.product.view',
+},
+  {
     label: '經銷商管理',
     path: '/dealers',
     permission: 'dealer.view',
