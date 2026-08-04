@@ -40,7 +40,6 @@ RouteRecordRaw[] = [
 
   ...systemRoutes,
 
-
   {
     path: '/',
     redirect: '/dashboard',
@@ -51,7 +50,6 @@ RouteRecordRaw[] = [
     path: '/:pathMatch(.*)*',
     redirect: '/dashboard',
   },
-
 ]
 
 
