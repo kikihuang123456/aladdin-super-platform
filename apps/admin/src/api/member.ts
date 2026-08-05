@@ -751,18 +751,97 @@ export async function searchMembersForDealer(
     }
 
 
+    if(
+      response.members.length === 0
+    ){
+
+      return {
+
+        success:
+          true,
+
+        members:
+          [],
+
+        message:
+          '找不到符合條件的啟用會員。',
+
+      }
+
+    }
+
+
+    const memberIds =
+      response.members.map(
+        member =>
+          member.id,
+      )
+
+
+    const {
+      data: existingDealers,
+      error: existingDealersError,
+    } =
+      await supabase
+        .from(
+          'dealers',
+        )
+        .select(`
+          member_id
+        `)
+        .in(
+          'member_id',
+          memberIds,
+        )
+
+
+    if(
+      existingDealersError
+    ){
+
+      throw existingDealersError
+
+    }
+
+
+    const existingMemberIds =
+      new Set(
+        (
+          existingDealers
+          ??
+          []
+        )
+          .map(
+            item =>
+              typeof item.member_id === 'string'
+                ? item.member_id
+                : '',
+          )
+          .filter(Boolean),
+      )
+
+
+    const availableMembers =
+      response.members.filter(
+        member =>
+          !existingMemberIds.has(
+            member.id,
+          ),
+      )
+
+
     return {
 
       success:
         true,
 
       members:
-        response.members,
+        availableMembers,
 
       message:
-        response.members.length > 0
-          ? `找到 ${response.members.length} 位可選會員。`
-          : '找不到符合條件的啟用會員。',
+        availableMembers.length > 0
+          ? `找到 ${availableMembers.length} 位可建立經銷商的會員。`
+          : '搜尋到的會員皆已建立經銷商資料。',
 
     }
 

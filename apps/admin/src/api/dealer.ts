@@ -862,6 +862,284 @@ export async function getDealers(
 
 }
 // =================================
+// Dealer Create Duplicate Check
+// =================================
+
+interface DealerDuplicateCheckInput {
+
+  memberId:
+    string
+
+  dealerNo:
+    string
+
+  email:
+    string | null
+
+  phone:
+    string | null
+
+}
+
+
+
+interface DealerDuplicateCheckResult {
+
+  duplicated:
+    boolean
+
+  message:
+    string
+
+}
+
+
+
+async function checkDealerDuplicate(
+  input:
+    DealerDuplicateCheckInput,
+): Promise<DealerDuplicateCheckResult> {
+
+  /*
+   * 檢查同一會員是否已建立經銷商。
+   */
+
+  const {
+    data: memberDealer,
+    error: memberDealerError,
+  } =
+    await supabase
+      .from(
+        DEALER_TABLE,
+      )
+      .select(`
+        id,
+        dealer_no,
+        name
+      `)
+      .eq(
+        'member_id',
+        input.memberId,
+      )
+      .maybeSingle()
+
+
+  if(
+    memberDealerError
+  ){
+
+    throw memberDealerError
+
+  }
+
+
+  if(
+    memberDealer
+  ){
+
+    return {
+
+      duplicated:
+        true,
+
+      message:
+        `此會員已建立經銷商資料，經銷商編號為 ${
+          normalizeString(
+            memberDealer.dealer_no,
+            '未設定',
+          )
+        }。`,
+
+    }
+
+  }
+
+
+  /*
+   * 檢查經銷商編號。
+   */
+
+  const {
+    data: dealerNoRecord,
+    error: dealerNoError,
+  } =
+    await supabase
+      .from(
+        DEALER_TABLE,
+      )
+      .select(`
+        id,
+        dealer_no,
+        name
+      `)
+      .or(
+        [
+          `dealer_no.eq.${input.dealerNo}`,
+          `dealer_code.eq.${input.dealerNo}`,
+        ].join(','),
+      )
+      .limit(
+        1,
+      )
+      .maybeSingle()
+
+
+  if(
+    dealerNoError
+  ){
+
+    throw dealerNoError
+
+  }
+
+
+  if(
+    dealerNoRecord
+  ){
+
+    return {
+
+      duplicated:
+        true,
+
+      message:
+        `經銷商編號 ${input.dealerNo} 已被使用。`,
+
+    }
+
+  }
+
+
+  /*
+   * Email 有值時才檢查。
+   */
+
+  if(
+    input.email
+  ){
+
+    const {
+      data: emailRecord,
+      error: emailError,
+    } =
+      await supabase
+        .from(
+          DEALER_TABLE,
+        )
+        .select(`
+          id,
+          email,
+          name
+        `)
+        .ilike(
+          'email',
+          input.email,
+        )
+        .limit(
+          1,
+        )
+        .maybeSingle()
+
+
+    if(
+      emailError
+    ){
+
+      throw emailError
+
+    }
+
+
+    if(
+      emailRecord
+    ){
+
+      return {
+
+        duplicated:
+          true,
+
+        message:
+          `電子信箱 ${input.email} 已被其他經銷商使用。`,
+
+      }
+
+    }
+
+  }
+
+
+  /*
+   * 手機有值時才檢查。
+   */
+
+  if(
+    input.phone
+  ){
+
+    const {
+      data: phoneRecord,
+      error: phoneError,
+    } =
+      await supabase
+        .from(
+          DEALER_TABLE,
+        )
+        .select(`
+          id,
+          phone,
+          name
+        `)
+        .eq(
+          'phone',
+          input.phone,
+        )
+        .limit(
+          1,
+        )
+        .maybeSingle()
+
+
+    if(
+      phoneError
+    ){
+
+      throw phoneError
+
+    }
+
+
+    if(
+      phoneRecord
+    ){
+
+      return {
+
+        duplicated:
+          true,
+
+        message:
+          `手機號碼 ${input.phone} 已被其他經銷商使用。`,
+
+      }
+
+    }
+
+  }
+
+
+  return {
+
+    duplicated:
+      false,
+
+    message:
+      '經銷商資料可建立。',
+
+  }
+
+}
+// =================================
 // Dealer Create
 // =================================
 
@@ -1052,20 +1330,53 @@ export async function createDealer(
   try {
 
 
-    const {
-      data,
-      error,
-    } =
-      await supabase
-        .from(
-          DEALER_TABLE,
-        )
-        .insert(
-          payload,
-        )
-        .select('*')
-        .single()
+  const duplicateResult =
+    await checkDealerDuplicate({
 
+      memberId,
+
+      dealerNo,
+
+      email,
+
+      phone,
+
+    })
+
+
+  if(
+    duplicateResult.duplicated
+  ){
+
+    return {
+
+      success:
+        false,
+
+      message:
+        '經銷商資料重複，無法建立。',
+
+      error:
+        duplicateResult.message,
+
+    }
+
+  }
+
+
+  const {
+    data,
+    error,
+  } =
+    await supabase
+      .from(
+        DEALER_TABLE,
+      )
+      .insert(
+        payload,
+      )
+      .select('*')
+      .single()
 
     if(
       error
