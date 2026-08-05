@@ -31,6 +31,7 @@ import {
 import type {
   Dealer,
   DealerApprovalInput,
+  DealerCreateRequest,
   DealerFilters,
   DealerLevelUpdateInput,
   DealerPagination,
@@ -192,7 +193,18 @@ export const useDealerStore =
           Dealer | null
         >(null)
 
+const createdDealer =
+  ref<
+    Dealer | null
+  >(null)
 
+
+const createLoading =
+  ref(false)
+
+
+const createError =
+  ref<string | null>(null)
 
       const filters =
         ref<
@@ -381,7 +393,130 @@ async function fetchPendingDealers(){
 
 }
 
+async function createDealerRecord(
+  input:
+    DealerCreateRequest,
+):
+  Promise<Dealer | null> {
 
+  if(
+    createLoading.value
+  ){
+
+    return null
+
+  }
+
+
+  createLoading.value =
+    true
+
+
+  createError.value =
+    null
+
+
+  createdDealer.value =
+    null
+
+
+  mutationMessage.value =
+    null
+
+
+  try {
+
+
+    const response =
+      await dealerApi.createDealer(
+        input,
+      )
+
+
+    if(
+      !response.success
+      ||
+      !response.dealer
+    ){
+
+      throw new Error(
+        response.error
+        ||
+        response.message,
+      )
+
+    }
+
+
+    createdDealer.value =
+      response.dealer
+
+
+    currentDealer.value =
+      response.dealer
+
+
+    /*
+     * 新資料放在列表最前方。
+     */
+
+    const existingIndex =
+      dealers.value.findIndex(
+        dealer =>
+          dealer.id ===
+          response.dealer!.id,
+      )
+
+
+    if(
+      existingIndex >= 0
+    ){
+
+      dealers.value[
+        existingIndex
+      ] =
+        response.dealer
+
+    }else{
+
+      dealers.value.unshift(
+        response.dealer,
+      )
+
+    }
+
+
+    mutationMessage.value =
+      response.message
+
+
+    return response.dealer
+
+
+  }catch(
+    errorValue
+  ){
+
+
+    createError.value =
+      normalizeError(
+        errorValue,
+        '經銷商建立失敗。',
+      )
+
+
+    return null
+
+
+  }finally{
+
+
+    createLoading.value =
+      false
+
+  }
+
+}
       async function fetchDealerById(
         dealerId: string,
       ):
@@ -1005,7 +1140,21 @@ async function fetchPendingDealers(){
 
       }
 
+function clearCreateResult():
+  void {
 
+  createdDealer.value =
+    null
+
+
+  createError.value =
+    null
+
+
+  mutationMessage.value =
+    null
+
+}
 
 
       function clearCurrentDealer():
@@ -1045,9 +1194,11 @@ async function fetchPendingDealers(){
 
         dealers,
 
-        currentDealer,
+currentDealer,
 
-        filters,
+createdDealer,
+
+filters,
 
         pagination,
 
@@ -1056,12 +1207,16 @@ async function fetchPendingDealers(){
 
         isLoading,
 
-        isMutating,
+isMutating,
+
+createLoading,
 
 
         error,
 
-        mutationMessage,
+createError,
+
+mutationMessage,
 
 
         hasDealers,
@@ -1075,9 +1230,11 @@ async function fetchPendingDealers(){
 
         fetchDealers,
 
-        fetchPendingDealers,
+fetchPendingDealers,
 
-        fetchDealerById,
+createDealerRecord,
+
+fetchDealerById,
 
         approveDealer,
 
@@ -1103,11 +1260,13 @@ async function fetchPendingDealers(){
         resetFilters,
 
 
-        clearCurrentDealer,
+        clearCreateResult,
 
-        clearError,
+clearCurrentDealer,
 
-        clearMutationMessage,
+clearError,
+
+clearMutationMessage,
 
       }
 

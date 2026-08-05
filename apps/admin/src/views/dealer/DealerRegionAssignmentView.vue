@@ -57,9 +57,6 @@ import DealerRegionHistoryDialog
 from '../../components/dealer/DealerRegionHistoryDialog.vue'
 
 
-import DealerRegionCapacityRuleAlert
-from '../../components/dealer/DealerRegionCapacityRuleAlert.vue'
-
 
 import DealerRegionBatchAssignmentResult
 from '../../components/dealer/DealerRegionBatchAssignmentResult.vue'
@@ -72,7 +69,22 @@ from '../../components/dealer/DealerRegionReassignmentDialog.vue'
 import DealerRegionReassignmentResult
 from '../../components/dealer/DealerRegionReassignmentResult.vue'
 
+import type {
+  DealerRegionUnassignmentRequest,
+} from '../../types/dealer-region-unassignment'
 
+
+import {
+  useDealerRegionUnassignmentStore,
+} from '../../stores/dealer-region-unassignment'
+
+
+import DealerRegionUnassignmentDialog
+from '../../components/dealer/DealerRegionUnassignmentDialog.vue'
+
+
+import DealerRegionUnassignmentResult
+from '../../components/dealer/DealerRegionUnassignmentResult.vue'
 
 const dealerRegionStore =
   useDealerRegionStore()
@@ -93,7 +105,8 @@ const batchAssignmentStore =
 const reassignmentStore =
   useDealerRegionReassignmentStore()
 
-
+const unassignmentStore =
+  useDealerRegionUnassignmentStore()
 
 const successMessage =
   ref('')
@@ -118,6 +131,8 @@ const showHistoryDialog =
 const showReassignmentDialog =
   ref(false)
 
+const showUnassignmentDialog =
+  ref(false)
 
 const selectedRegion =
   ref<DealerRegion | null>(null)
@@ -173,20 +188,13 @@ async function confirmAssign(
 
 
   /*
-   * M05-08
-   * 批次指派前再次檢查容量。
+   * Dialog 已完成即時容量檢查。
+   * 父頁面不再重複呼叫容量 API，
+   * 避免卡在第二次「容量檢查中」。
    */
 
   const capacityResult =
-    await capacityRuleStore
-      .checkAssignmentCapacity({
-
-        regionId:
-          selectedRegion.value.id,
-
-        dealerIds,
-
-      })
+    capacityRuleStore.result
 
 
   if(
@@ -196,7 +204,7 @@ async function confirmAssign(
     assignmentError.value =
       capacityRuleStore.error
       ??
-      '無法完成區域容量檢查。'
+      '尚未取得區域容量檢查結果。'
 
     return
 
@@ -216,8 +224,7 @@ async function confirmAssign(
 
 
   /*
-   * M05-10
-   * 一次批次寫入指派與紀錄。
+   * 執行正式批次指派。
    */
 
   const batchResult =
@@ -266,6 +273,10 @@ async function confirmAssign(
   }
 
 
+  /*
+   * 指派成功後刷新資料。
+   */
+
   await dealerRegionStore.fetchRegions()
 
 
@@ -283,7 +294,6 @@ async function confirmAssign(
   )
 
 }
-
 
 
 function handleAssign(
@@ -589,14 +599,143 @@ function closeHistoryDialog(){
 // Remove
 // =================================
 
+// =================================
+// M05-12 Unassignment
+// =================================
+
 function handleRemove(
   region: DealerRegion,
 ){
 
-  console.log(
-    'remove region',
-    region,
+  successMessage.value =
+    ''
+
+
+  assignmentError.value =
+    ''
+
+
+  unassignmentStore.clearResult()
+
+
+  selectedRegion.value =
+    region
+
+
+  showUnassignmentDialog.value =
+    true
+
+}
+
+
+
+async function confirmUnassignment(
+  payload:
+    DealerRegionUnassignmentRequest,
+){
+
+  successMessage.value =
+    ''
+
+
+  assignmentError.value =
+    ''
+
+
+  const response =
+    await unassignmentStore.unassign(
+      payload,
+    )
+
+
+  if(
+    !response
+  ){
+
+    assignmentError.value =
+      unassignmentStore.error
+      ??
+      '解除經銷商區域指派失敗。'
+
+    return
+
+  }
+
+
+  if(
+    !response.success
+  ){
+
+    assignmentError.value =
+      response.error
+      ??
+      response.message
+
+    // 失敗時保留 Dialog，
+    // 方便管理員查看錯誤並再次操作。
+
+    return
+
+  }
+
+
+  await dealerRegionStore.fetchRegions()
+
+
+  await candidateStore.fetchCandidates()
+
+
+  successMessage.value =
+    response.message
+
+
+  closeUnassignmentDialog(
+    false,
   )
+
+}
+
+
+
+function closeUnassignmentDialog(
+  clearResult = true,
+){
+
+  showUnassignmentDialog.value =
+    false
+
+
+  selectedRegion.value =
+    null
+
+
+  assignmentError.value =
+    ''
+
+
+  if(
+    clearResult
+  ){
+
+    unassignmentStore.clearResult()
+
+  }
+
+}
+
+
+
+function clearUnassignmentResult(){
+
+  unassignmentStore.clearResult()
+
+
+  successMessage.value =
+    ''
+
+
+  assignmentError.value =
+    ''
 
 }
 
@@ -764,31 +903,58 @@ onMounted(
 
   </section>
 
+<!-- M05-12 Unassignment Result -->
 
-  <!-- M05-08 Capacity Result -->
-
-  <DealerRegionCapacityRuleAlert
-    v-if="
-      showAssignDialog
+<section
+  v-if="
+    unassignmentStore.loading
+    ||
+    unassignmentStore.result
+    ||
+    (
+      unassignmentStore.error
       &&
-      (
-        capacityRuleStore.loading
-        ||
-        capacityRuleStore.result
-        ||
-        capacityRuleStore.error
-      )
-    "
+      !showUnassignmentDialog
+    )
+  "
+  class="result-panel"
+>
+
+  <div class="result-toolbar">
+
+    <h2>
+      解除指派結果
+    </h2>
+
+
+    <button
+      v-if="
+        !unassignmentStore.loading
+        &&
+        unassignmentStore.result
+      "
+      type="button"
+      @click="clearUnassignmentResult"
+    >
+      關閉結果
+    </button>
+
+  </div>
+
+
+  <DealerRegionUnassignmentResult
     :result="
-      capacityRuleStore.result
+      unassignmentStore.result
     "
     :loading="
-      capacityRuleStore.loading
+      unassignmentStore.loading
     "
     :error="
-      capacityRuleStore.error
+      unassignmentStore.error
     "
   />
+
+</section>
 
 
   <div
@@ -833,38 +999,39 @@ onMounted(
   <!-- Batch Assignment Dialog -->
 
   <DealerRegionAssignDialog
-    :visible="
-      showAssignDialog
-    "
-    :region="
-      selectedRegion
-    "
-    @close="
-      closeAssignDialog()
-    "
-    @confirm="
-      confirmAssign
-    "
-  />
+  :visible="
+    showAssignDialog
+  "
+  :region="
+    selectedRegion
+  "
+  @close="
+    closeAssignDialog()
+  "
+  @confirm="
+    confirmAssign
+  "
+/>
 
 
   <!-- Reassignment Dialog -->
 
   <DealerRegionReassignmentDialog
-    :visible="
-      showReassignmentDialog
-    "
-    :region="
-      selectedRegion
-    "
-    @close="
-      closeReassignmentDialog()
-    "
-    @confirm="
-      confirmReassignment
-    "
-  />
+  v-if="showReassignmentDialog"
+  :visible="showReassignmentDialog"
+  :region="selectedRegion"
+  @close="closeReassignmentDialog()"
+  @confirm="confirmReassignment"
+/>
+<!-- Unassignment Dialog -->
 
+<DealerRegionUnassignmentDialog
+  v-if="showUnassignmentDialog"
+  :visible="showUnassignmentDialog"
+  :region="selectedRegion"
+  @close="closeUnassignmentDialog()"
+  @confirm="confirmUnassignment"
+/>
 
   <!-- Detail Dialog -->
 

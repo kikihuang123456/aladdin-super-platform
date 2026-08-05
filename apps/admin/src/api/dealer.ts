@@ -14,16 +14,18 @@ import {
 
 import type {
   Dealer,
+  DealerApprovalInput,
+  DealerCreateRequest,
+  DealerCreateResponse,
   DealerDetailResponse,
   DealerFilters,
-  DealerLogListResponse,
+  DealerLevelUpdateInput,
   DealerListResponse,
+  DealerLogListResponse,
   DealerMutationResponse,
   DealerPagination,
   DealerStatistics,
-  DealerApprovalInput,
   DealerStatusUpdateInput,
-  DealerLevelUpdateInput,
 } from '../types/dealer'
 
 
@@ -852,6 +854,337 @@ export async function getDealers(
         normalizeApiError(
           errorValue,
           '經銷商資料載入發生未知錯誤。',
+        ),
+
+    }
+
+  }
+
+}
+// =================================
+// Dealer Create
+// =================================
+
+export async function createDealer(
+  input:
+    DealerCreateRequest,
+): Promise<DealerCreateResponse> {
+
+  const memberId =
+    input.memberId.trim()
+
+
+  const dealerNo =
+    input.dealerNo.trim()
+
+
+  const name =
+    input.name.trim()
+
+
+  const phone =
+    input.phone?.trim()
+    ||
+    null
+
+
+  const email =
+    input.email?.trim()
+      .toLowerCase()
+    ||
+    null
+
+
+  const regionId =
+    input.regionId?.trim()
+    ||
+    null
+
+
+  const remark =
+    input.remark?.trim()
+    ||
+    null
+
+
+  if(
+    !memberId
+  ){
+
+    return {
+
+      success:
+        false,
+
+      message:
+        '會員 ID 不可空白。',
+
+      error:
+        '會員 ID 不可空白。',
+
+    }
+
+  }
+
+
+  if(
+    !dealerNo
+  ){
+
+    return {
+
+      success:
+        false,
+
+      message:
+        '經銷商編號不可空白。',
+
+      error:
+        '經銷商編號不可空白。',
+
+    }
+
+  }
+
+
+  if(
+    !name
+  ){
+
+    return {
+
+      success:
+        false,
+
+      message:
+        '經銷商姓名不可空白。',
+
+      error:
+        '經銷商姓名不可空白。',
+
+    }
+
+  }
+
+
+  const now =
+    new Date()
+      .toISOString()
+
+
+  const payload:
+    Record<string, unknown> = {
+
+      dealer_no:
+        dealerNo,
+
+      dealer_code:
+        dealerNo,
+
+      member_id:
+        memberId,
+
+      name,
+
+      phone,
+
+      email,
+
+      market:
+        input.market,
+
+      level:
+        input.level,
+
+      status:
+        input.status,
+
+      region_id:
+        regionId,
+
+      direct_count:
+        Math.max(
+          0,
+          Math.floor(
+            input.directCount
+            ??
+            0,
+          ),
+        ),
+
+      team_count:
+        Math.max(
+          0,
+          Math.floor(
+            input.teamCount
+            ??
+            0,
+          ),
+        ),
+
+      team_sales:
+        Math.max(
+          0,
+          input.teamSales
+          ??
+          0,
+        ),
+
+      total_commission:
+        Math.max(
+          0,
+          input.totalCommission
+          ??
+          0,
+        ),
+
+      remark,
+
+      created_at:
+        now,
+
+      updated_at:
+        now,
+
+    }
+
+
+  try {
+
+
+    const {
+      data,
+      error,
+    } =
+      await supabase
+        .from(
+          DEALER_TABLE,
+        )
+        .insert(
+          payload,
+        )
+        .select('*')
+        .single()
+
+
+    if(
+      error
+    ){
+
+      throw error
+
+    }
+
+
+    const dealer =
+      mapDealer(
+        data as DealerRow,
+      )
+
+
+    /*
+     * 建立操作紀錄。
+     *
+     * Log 寫入失敗不刪除已建立的經銷商，
+     * 避免主資料因紀錄表問題而遺失。
+     */
+
+    const {
+      error: logError,
+    } =
+      await supabase
+        .from(
+          DEALER_LOG_TABLE,
+        )
+        .insert({
+
+          dealer_id:
+            dealer.id,
+
+          action_type:
+            'create',
+
+          action_name:
+            '建立經銷商',
+
+          previous_data:
+            null,
+
+          next_data:
+            payload,
+
+          operator_id:
+            null,
+
+          operator_role:
+            null,
+
+          remark:
+            remark
+            ??
+            '後台建立經銷商',
+
+          created_at:
+            now,
+
+        })
+
+
+    if(
+      logError
+    ){
+
+      return {
+
+        success:
+          true,
+
+        dealer,
+
+        message:
+          '經銷商建立成功，但操作紀錄寫入失敗。',
+
+        error:
+          normalizeApiError(
+            logError,
+            '經銷商操作紀錄寫入失敗。',
+          ),
+
+      }
+
+    }
+
+
+    return {
+
+      success:
+        true,
+
+      dealer,
+
+      message:
+        '經銷商建立成功。',
+
+    }
+
+
+  }catch(
+    errorValue
+  ){
+
+
+    return {
+
+      success:
+        false,
+
+      message:
+        '經銷商建立失敗。',
+
+      error:
+        normalizeApiError(
+          errorValue,
+          '建立經銷商時發生未知錯誤。',
         ),
 
     }
@@ -1742,6 +2075,8 @@ export const dealerApi = {
   getPendingDealers,
 
   getDealerById,
+
+  createDealer,
 
   getDealerLogs,
 

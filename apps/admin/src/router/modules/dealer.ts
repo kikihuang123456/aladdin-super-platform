@@ -39,40 +39,71 @@ RouteRecordRaw[] = [
     },
 
   },
+// =================================
+// Dealer Create
+// =================================
 
+{
+  path:
+    '/dealers/create',
+
+  name:
+    'dealer-create',
+
+  component:
+    () =>
+      import(
+        '../../views/dealer/DealerCreateView.vue'
+      ),
+
+  meta: {
+
+    title:
+      '新增經銷商',
+
+    requiresAuth:
+      true,
+
+    permissions: [
+      'dealer.create',
+    ],
+
+  },
+
+},
 
   // =================================
   // Dealer Detail
   // =================================
 
   {
-    path:
-      '/dealers/:id',
+  path:
+    '/dealers/:id([0-9a-fA-F-]{36})',
 
-    name:
-      'dealer-detail',
+  name:
+    'dealer-detail',
 
-    component:
-      () =>
-        import(
-          '../../views/dealer/DealerDetailView.vue'
-        ),
+  component:
+    () =>
+      import(
+        '../../views/dealer/DealerDetailView.vue'
+      ),
 
-    meta: {
+  meta: {
 
-      title:
-        '經銷商詳情',
+    title:
+      '經銷商詳情',
 
-      requiresAuth:
-        true,
+    requiresAuth:
+      true,
 
-      permissions: [
-        'dealer.view',
-      ],
-
-    },
+    permissions: [
+      'dealer.view',
+    ],
 
   },
+
+},
 
 
   // =================================

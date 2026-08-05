@@ -2,6 +2,7 @@
 
 import {
   computed,
+  onUnmounted,
   ref,
   watch,
 } from 'vue'
@@ -17,15 +18,16 @@ import {
 } from '../../stores/dealer-region-capacity-rule'
 
 
+
+
 import DealerRegionCapacityRuleAlert
 from './DealerRegionCapacityRuleAlert.vue'
+
 
 import DealerRegionCandidateSelector
 from './DealerRegionCandidateSelector.vue'
 
-import {
-  useDealerRegionCandidateStore,
-} from '../../stores/dealer-region-candidate'
+
 
 interface Props {
 
@@ -60,8 +62,6 @@ const emit =
 const capacityRuleStore =
   useDealerRegionCapacityRuleStore()
 
-const candidateStore =
-  useDealerRegionCandidateStore()
 
 
 
@@ -78,11 +78,24 @@ const localError =
   ref('')
 
 
-// 防止較舊的容量檢查結果
-// 覆蓋最新勾選結果
+
+/*
+ * 防止較舊的容量檢查結果
+ * 覆蓋最新選擇結果。
+ */
 
 let capacityCheckSequence =
   0
+
+
+let capacityCheckTimer:
+  ReturnType<typeof setTimeout>
+  | null =
+    null
+
+
+let lastCapacityCheckKey =
+  ''
 
 
 
@@ -146,11 +159,30 @@ computed(
 
 
 
+function getNormalizedDealerIds(){
+
+  return Array.from(
+    new Set(
+      selectedDealerIds.value
+        .filter(
+          dealerId =>
+            typeof dealerId === 'string'
+            &&
+            dealerId.trim().length > 0,
+        )
+        .map(
+          dealerId =>
+            dealerId.trim(),
+        ),
+    ),
+  )
+    .sort()
+
+}
+
+
+
 async function checkSelectedCapacity(){
-
-  const currentSequence =
-    ++capacityCheckSequence
-
 
   localError.value =
     ''
@@ -164,16 +196,10 @@ async function checkSelectedCapacity(){
 
     capacityRuleStore.clearResult()
 
-    return
 
-  }
+    lastCapacityCheckKey =
+      ''
 
-
-  if(
-    selectedDealerIds.value.length === 0
-  ){
-
-    capacityRuleStore.clearResult()
 
     return
 
@@ -181,9 +207,57 @@ async function checkSelectedCapacity(){
 
 
   const dealerIds =
+    getNormalizedDealerIds()
+
+
+  if(
+    dealerIds.length === 0
+  ){
+
+    capacityRuleStore.clearResult()
+
+
+    lastCapacityCheckKey =
+      ''
+
+
+    return
+
+  }
+
+
+  const capacityCheckKey =
     [
-      ...selectedDealerIds.value,
-    ]
+      props.region.id,
+      ...dealerIds,
+    ].join('|')
+
+
+  /*
+   * 同一區域與相同經銷商組合，
+   * 已有檢查結果時不再重複呼叫。
+   */
+
+  if(
+    capacityCheckKey ===
+      lastCapacityCheckKey
+    &&
+    capacityRuleStore.result
+    &&
+    !capacityRuleStore.error
+  ){
+
+    return
+
+  }
+
+
+  const currentSequence =
+    ++capacityCheckSequence
+
+
+  lastCapacityCheckKey =
+    capacityCheckKey
 
 
   const result =
@@ -197,6 +271,10 @@ async function checkSelectedCapacity(){
 
       })
 
+
+  /*
+   * 忽略較舊的非同步容量檢查結果。
+   */
 
   if(
     currentSequence !==
@@ -217,17 +295,67 @@ async function checkSelectedCapacity(){
       ??
       '區域容量檢查失敗。'
 
+
+    lastCapacityCheckKey =
+      ''
+
   }
 
 }
 
 
 
+function scheduleCapacityCheck(){
 
+  if(
+    capacityCheckTimer
+  ){
+
+    clearTimeout(
+      capacityCheckTimer,
+    )
+
+  }
+
+
+  capacityCheckTimer =
+    setTimeout(
+      () => {
+
+        capacityCheckTimer =
+          null
+
+
+        void checkSelectedCapacity()
+
+      },
+      300,
+    )
+
+}
 
 
 
 function resetDialog(){
+
+  if(
+    capacityCheckTimer
+  ){
+
+    clearTimeout(
+      capacityCheckTimer,
+    )
+
+
+    capacityCheckTimer =
+      null
+
+  }
+
+
+  lastCapacityCheckKey =
+    ''
+
 
   capacityCheckSequence +=
     1
@@ -264,7 +392,7 @@ function handleClose(){
 
 
 
-async function handleConfirm(){
+function handleConfirm(){
 
   localError.value =
     ''
@@ -282,8 +410,12 @@ async function handleConfirm(){
   }
 
 
+  const dealerIds =
+    getNormalizedDealerIds()
+
+
   if(
-    selectedDealerIds.value.length === 0
+    dealerIds.length === 0
   ){
 
     localError.value =
@@ -294,44 +426,36 @@ async function handleConfirm(){
   }
 
 
-  submitting.value =
-    true
-
-
-  // 確認送出前再檢查一次，
-  // 避免使用過期的容量結果。
-
-  const dealerIds =
-    [
-      ...selectedDealerIds.value,
-    ]
-
-
-  const capacityResult =
-    await capacityRuleStore
-      .checkAssignmentCapacity({
-
-        regionId:
-          props.region.id,
-
-        dealerIds,
-
-      })
-
+  /*
+   * 即時容量檢查尚未完成時，
+   * 不允許送出。
+   */
 
   if(
-    !capacityResult
+    capacityRuleStore.loading
+  ){
+
+    localError.value =
+      '容量仍在檢查中，請稍候。'
+
+    return
+
+  }
+
+
+  /*
+   * 即時容量檢查沒有結果時，
+   * 不允許送出。
+   */
+
+  if(
+    !capacityRuleStore.result
   ){
 
     localError.value =
       capacityRuleStore.error
       ??
-      '無法完成區域容量檢查。'
-
-
-    submitting.value =
-      false
-
+      '尚未取得區域容量檢查結果。'
 
     return
 
@@ -339,50 +463,89 @@ async function handleConfirm(){
 
 
   if(
-    !capacityResult.allowed
+    !capacityRuleStore.result.allowed
   ){
 
     localError.value =
-      capacityResult.message
-
-
-    submitting.value =
-      false
-
+      capacityRuleStore.result.message
 
     return
 
   }
 
+
+  /*
+   * 取消尚未執行的延遲檢查，
+   * 避免送出後再次觸發容量檢查。
+   */
+
+  if(
+    capacityCheckTimer
+  ){
+
+    clearTimeout(
+      capacityCheckTimer,
+    )
+
+
+    capacityCheckTimer =
+      null
+
+  }
+
+
+  capacityCheckSequence +=
+    1
+
+
+  submitting.value =
+    true
+
+
+  /*
+   * Dialog 不再重複檢查容量。
+   *
+   * 父層 confirmAssign 會執行最後一次
+   * 正式容量檢查與批次指派。
+   */
 
   emit(
     'confirm',
     dealerIds,
   )
 
-  await candidateStore.fetchCandidates()
 
-  // emit 不會等待父層 async 函式，
-  // 因此恢復按鈕狀態。
-  // 指派成功時父層會關閉 Dialog。
+  /*
+   * emit 無法等待父層 async 函式。
+   * 父層成功後會關閉 Dialog；
+   * 失敗時則恢復按鈕狀態。
+   */
 
-  submitting.value =
-    false
+  window.setTimeout(
+    () => {
+
+      submitting.value =
+        false
+
+    },
+    500,
+  )
 
 }
 
 
 
 watch(
-  selectedDealerIds,
-  async() => {
+  () =>
+    selectedDealerIds.value
+      .slice()
+      .sort()
+      .join('|'),
 
-    await checkSelectedCapacity()
+  () => {
 
-  },
-  {
-    deep:
-      true,
+    scheduleCapacityCheck()
+
   },
 )
 
@@ -390,7 +553,7 @@ watch(
 
 watch(
   () => props.region?.id,
-  async(
+  (
     nextRegionId,
     previousRegionId,
   ) => {
@@ -405,8 +568,27 @@ watch(
     }
 
 
+    if(
+      capacityCheckTimer
+    ){
+
+      clearTimeout(
+        capacityCheckTimer,
+      )
+
+
+      capacityCheckTimer =
+        null
+
+    }
+
+
     capacityCheckSequence +=
       1
+
+
+    lastCapacityCheckKey =
+      ''
 
 
     selectedDealerIds.value =
@@ -439,6 +621,32 @@ watch(
   },
 )
 
+
+
+onUnmounted(
+  () => {
+
+    if(
+      capacityCheckTimer
+    ){
+
+      clearTimeout(
+        capacityCheckTimer,
+      )
+
+
+      capacityCheckTimer =
+        null
+
+    }
+
+
+    capacityCheckSequence +=
+      1
+
+  },
+)
+
 </script>
 
 
@@ -466,6 +674,7 @@ watch(
         </p>
 
       </div>
+
 
       <button
         class="close-button"
@@ -514,22 +723,18 @@ watch(
 
 
 
-    
+    <section class="dealer-section">
 
-      <section class="dealer-section">
+      <DealerRegionCandidateSelector
+        v-model="
+          selectedDealerIds
+        "
+        :disabled="
+          submitting
+        "
+      />
 
-  <DealerRegionCandidateSelector
-    v-model="
-      selectedDealerIds
-    "
-    :disabled="
-      submitting
-      ||
-      capacityRuleStore.loading
-    "
-  />
-
-</section>
+    </section>
 
 
 
@@ -784,133 +989,6 @@ watch(
 
   margin-bottom:
     18px;
-
-}
-
-
-.section-title {
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    space-between;
-
-  gap:
-    16px;
-
-  margin-bottom:
-    12px;
-
-}
-
-
-.section-title h3 {
-
-  margin:
-    0;
-
-  color:
-    #101828;
-
-}
-
-
-.section-title span {
-
-  color:
-    #667085;
-
-  font-size:
-    13px;
-
-}
-
-
-.dealer-list {
-
-  display:
-    flex;
-
-  flex-direction:
-    column;
-
-  gap:
-    10px;
-
-}
-
-
-.dealer-item {
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    12px;
-
-  padding:
-    14px;
-
-  border:
-    1px solid #d0d5dd;
-
-  border-radius:
-    12px;
-
-  cursor:
-    pointer;
-
-  transition:
-    border-color .2s,
-    background .2s;
-
-}
-
-
-.dealer-item.selected {
-
-  border-color:
-    #344054;
-
-  background:
-    #f9fafb;
-
-}
-
-
-.dealer-content {
-
-  display:
-    flex;
-
-  flex-direction:
-    column;
-
-  gap:
-    4px;
-
-}
-
-
-.dealer-content strong {
-
-  color:
-    #101828;
-
-}
-
-
-.dealer-content small {
-
-  color:
-    #667085;
 
 }
 

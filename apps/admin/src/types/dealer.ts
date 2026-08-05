@@ -440,3 +440,147 @@ export interface DealerLogListResponse {
     string
 
 }
+// =================================
+// Dealer Create
+// =================================
+
+export interface DealerCreateForm {
+
+  memberId:
+    string
+
+
+  dealerNo:
+    string
+
+
+  name:
+    string
+
+
+  phone:
+    string
+
+
+  email:
+    string
+
+
+  market:
+    DealerMarket
+
+
+  level:
+    DealerLevel
+
+
+  status:
+    DealerStatus
+
+
+  regionId:
+    string
+
+
+  directCount:
+    number
+
+
+  teamCount:
+    number
+
+
+  teamSales:
+    number
+
+
+  totalCommission:
+    number
+
+
+  remark:
+    string
+
+}
+
+
+
+export interface DealerCreateRequest {
+
+  memberId:
+    string
+
+
+  dealerNo:
+    string
+
+
+  name:
+    string
+
+
+  phone?:
+    string | null
+
+
+  email?:
+    string | null
+
+
+  market:
+    DealerMarket
+
+
+  level:
+    DealerLevel
+
+
+  status:
+    DealerStatus
+
+
+  regionId?:
+    string | null
+
+
+  directCount?:
+    number
+
+
+  teamCount?:
+    number
+
+
+  teamSales?:
+    number
+
+
+  totalCommission?:
+    number
+
+
+  remark?:
+    string | null
+
+}
+
+
+
+export interface DealerCreateResponse {
+
+  success:
+    boolean
+
+
+  dealer?:
+    Dealer
+
+
+  message:
+    string
+
+
+  error?:
+    string
+
+}

@@ -26,17 +26,18 @@
             重新整理
           </button>
 
-          <button
-            v-if="
-              permissionStore.hasPermission(
-                'dealer.create',
-              )
-            "
-            class="primary-button"
-            type="button"
-          >
-            新增經銷商
-          </button>
+         <button
+  v-if="
+    permissionStore.hasPermission(
+      'dealer.create',
+    )
+  "
+  class="primary-button"
+  type="button"
+  @click="handleCreate"
+>
+  新增經銷商
+</button>
         </div>
       </section>
 
@@ -1054,7 +1055,15 @@ async function handleNextPage():
 
 }
 
+async function handleCreate():
+  Promise<void> {
 
+  await router.push({
+    name:
+      'dealer-create',
+  })
+
+}
 
 async function handleView(
   dealerId: string,
