@@ -649,6 +649,154 @@ export async function getMembers(
     }
   }
 }
+// =================================
+// Dealer Create Member Search
+// =================================
+
+export interface DealerMemberSearchResponse {
+
+  success:
+    boolean
+
+  members:
+    MemberListItem[]
+
+  message:
+    string
+
+  error?:
+    string
+
+}
+
+
+
+export async function searchMembersForDealer(
+  keyword: string,
+): Promise<DealerMemberSearchResponse> {
+
+  const normalizedKeyword =
+    keyword.trim()
+
+
+  if(
+    !normalizedKeyword
+  ){
+
+    return {
+
+      success:
+        true,
+
+      members:
+        [],
+
+      message:
+        '請輸入會員姓名、手機、Email 或會員編號。',
+
+    }
+
+  }
+
+
+  try {
+
+
+    const response =
+      await getMembers({
+
+        keyword:
+          normalizedKeyword,
+
+        status:
+          'active',
+
+        page:
+          1,
+
+        pageSize:
+          20,
+
+        sortBy:
+          'created_at',
+
+        sortDirection:
+          'desc',
+
+      })
+
+
+    if(
+      !response.success
+    ){
+
+      return {
+
+        success:
+          false,
+
+        members:
+          [],
+
+        message:
+          '會員搜尋失敗。',
+
+        error:
+          response.error
+          ??
+          response.message,
+
+      }
+
+    }
+
+
+    return {
+
+      success:
+        true,
+
+      members:
+        response.members,
+
+      message:
+        response.members.length > 0
+          ? `找到 ${response.members.length} 位可選會員。`
+          : '找不到符合條件的啟用會員。',
+
+    }
+
+
+  }catch(
+    error
+  ){
+
+
+    const normalizedError =
+      normalizeMemberApiError(
+        error,
+      )
+
+
+    return {
+
+      success:
+        false,
+
+      members:
+        [],
+
+      message:
+        '會員搜尋失敗。',
+
+      error:
+        normalizedError.message,
+
+    }
+
+  }
+
+}
 export interface CreateMemberInput {
   memberCode: string
   email: string
@@ -1397,6 +1545,7 @@ export const memberApi = {
   updateMember,
   updateMemberStatus,
   batchUpdateMemberStatus,
+  searchMembersForDealer,
 }
 
 export default memberApi

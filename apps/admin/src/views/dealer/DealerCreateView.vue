@@ -15,6 +15,10 @@ import AdminLayout
 from '../../layouts/AdminLayout.vue'
 
 
+import DealerMemberSelector
+from '../../components/dealer/DealerMemberSelector.vue'
+
+
 import {
   useDealerStore,
 } from '../../stores/dealer'
@@ -24,6 +28,11 @@ import type {
   DealerCreateForm,
   DealerCreateRequest,
 } from '../../types/dealer'
+
+
+import type {
+  MemberListItem,
+} from '../../types/member'
 
 
 
@@ -121,6 +130,130 @@ function normalizeNumber(
 
 
 
+function generateDealerNo(
+  member:
+    MemberListItem,
+): string {
+
+  const memberCode =
+    member.memberCode
+      .trim()
+      .toUpperCase()
+
+
+  if(
+    memberCode
+  ){
+
+    return memberCode.startsWith(
+      'DEA-',
+    )
+      ? memberCode
+      : `DEA-${memberCode}`
+
+  }
+
+
+  const shortId =
+    member.id
+      .replace(
+        /-/g,
+        '',
+      )
+      .slice(
+        0,
+        8,
+      )
+      .toUpperCase()
+
+
+  return `DEA-${shortId}`
+
+}
+
+
+
+function handleMemberSelect(
+  member:
+    MemberListItem,
+){
+
+  form.memberId =
+    member.id
+
+
+  form.name =
+    member.name
+
+
+  form.phone =
+    member.phone
+    ??
+    ''
+
+
+  form.email =
+    member.email
+    ??
+    ''
+
+
+  /*
+   * 尚未手動設定經銷商編號時，
+   * 才自動產生預設編號。
+   */
+
+  if(
+    !form.dealerNo.trim()
+  ){
+
+    form.dealerNo =
+      generateDealerNo(
+        member,
+      )
+
+  }
+
+
+  localError.value =
+    ''
+
+}
+
+
+
+function handleMemberClear(){
+
+  form.memberId =
+    ''
+
+
+  form.dealerNo =
+    ''
+
+
+  form.name =
+    ''
+
+
+  form.phone =
+    ''
+
+
+  form.email =
+    ''
+
+
+  localError.value =
+    ''
+
+
+  store.clearCreateResult()
+
+}
+
+
+
 function validateForm():
   boolean {
 
@@ -133,7 +266,7 @@ function validateForm():
   ){
 
     localError.value =
-      '請填寫會員 ID。'
+      '請先搜尋並選擇一位會員。'
 
     return false
 
@@ -157,7 +290,7 @@ function validateForm():
   ){
 
     localError.value =
-      '請填寫經銷商姓名。'
+      '選擇的會員缺少姓名資料。'
 
     return false
 
@@ -225,6 +358,7 @@ async function handleSubmit():
 
       email:
         form.email.trim()
+          .toLowerCase()
         ||
         null,
 
@@ -341,7 +475,7 @@ async function handleBack():
         </h1>
 
         <p class="page-description">
-          建立經銷商基本資料、市場、等級、帳號狀態與初始業績資訊。
+          搜尋既有會員，建立經銷商身分並設定市場、等級與初始狀態。
         </p>
 
       </div>
@@ -385,6 +519,10 @@ async function handleBack():
       @submit.prevent="handleSubmit"
     >
 
+      <!-- ============================= -->
+      <!-- 基本資料 -->
+      <!-- ============================= -->
+
       <section class="form-section">
 
         <div class="section-heading">
@@ -396,7 +534,7 @@ async function handleBack():
             </h2>
 
             <p>
-              設定經銷商對應會員及聯絡資訊。
+              搜尋既有會員並建立經銷商關聯。
             </p>
 
           </div>
@@ -404,31 +542,21 @@ async function handleBack():
         </div>
 
 
-        <div class="form-grid">
+        <DealerMemberSelector
+          v-model="form.memberId"
+          :disabled="
+            store.createLoading
+          "
+          @select="
+            handleMemberSelect
+          "
+          @clear="
+            handleMemberClear
+          "
+        />
 
-          <label class="field">
 
-            <span>
-              會員 ID
-              <b>*</b>
-            </span>
-
-            <input
-              v-model="form.memberId"
-              type="text"
-              autocomplete="off"
-              placeholder="請輸入 members.id"
-              :disabled="
-                store.createLoading
-              "
-            >
-
-            <small>
-              必須填寫已存在於 members 資料表的會員 UUID。
-            </small>
-
-          </label>
-
+        <div class="form-grid member-form-grid">
 
           <label class="field">
 
@@ -441,11 +569,15 @@ async function handleBack():
               v-model="form.dealerNo"
               type="text"
               autocomplete="off"
-              placeholder="例如 DEA-100002"
+              placeholder="選擇會員後自動產生"
               :disabled="
                 store.createLoading
               "
             >
+
+            <small>
+              系統會依會員編號自動產生，建立前仍可修改。
+            </small>
 
           </label>
 
@@ -461,7 +593,8 @@ async function handleBack():
               v-model="form.name"
               type="text"
               autocomplete="name"
-              placeholder="請輸入姓名或公司名稱"
+              placeholder="選擇會員後自動帶入"
+              readonly
               :disabled="
                 store.createLoading
               "
@@ -480,7 +613,8 @@ async function handleBack():
               v-model="form.phone"
               type="tel"
               autocomplete="tel"
-              placeholder="請輸入手機號碼"
+              placeholder="選擇會員後自動帶入"
+              readonly
               :disabled="
                 store.createLoading
               "
@@ -489,7 +623,7 @@ async function handleBack():
           </label>
 
 
-          <label class="field field-full">
+          <label class="field">
 
             <span>
               電子信箱
@@ -499,7 +633,8 @@ async function handleBack():
               v-model="form.email"
               type="email"
               autocomplete="email"
-              placeholder="dealer@example.com"
+              placeholder="選擇會員後自動帶入"
+              readonly
               :disabled="
                 store.createLoading
               "
@@ -511,6 +646,10 @@ async function handleBack():
 
       </section>
 
+
+      <!-- ============================= -->
+      <!-- 經銷設定 -->
+      <!-- ============================= -->
 
       <section class="form-section">
 
@@ -664,14 +803,14 @@ async function handleBack():
               v-model="form.regionId"
               type="text"
               autocomplete="off"
-              placeholder="可先留空，之後到區域指派管理設定"
+              placeholder="建議先留空，建立後再到區域指派管理設定"
               :disabled="
                 store.createLoading
               "
             >
 
             <small>
-              建議新增時先留空，再透過區域指派功能統一管理。
+              區域關係建議統一由「區域指派管理」建立。
             </small>
 
           </label>
@@ -680,6 +819,10 @@ async function handleBack():
 
       </section>
 
+
+      <!-- ============================= -->
+      <!-- 初始業績 -->
+      <!-- ============================= -->
 
       <section class="form-section">
 
@@ -709,7 +852,9 @@ async function handleBack():
             </span>
 
             <input
-              v-model.number="form.directCount"
+              v-model.number="
+                form.directCount
+              "
               type="number"
               min="0"
               step="1"
@@ -728,7 +873,9 @@ async function handleBack():
             </span>
 
             <input
-              v-model.number="form.teamCount"
+              v-model.number="
+                form.teamCount
+              "
               type="number"
               min="0"
               step="1"
@@ -747,7 +894,9 @@ async function handleBack():
             </span>
 
             <input
-              v-model.number="form.teamSales"
+              v-model.number="
+                form.teamSales
+              "
               type="number"
               min="0"
               step="1"
@@ -766,7 +915,9 @@ async function handleBack():
             </span>
 
             <input
-              v-model.number="form.totalCommission"
+              v-model.number="
+                form.totalCommission
+              "
               type="number"
               min="0"
               step="1"
@@ -781,6 +932,10 @@ async function handleBack():
 
       </section>
 
+
+      <!-- ============================= -->
+      <!-- 備註 -->
+      <!-- ============================= -->
 
       <section class="form-section">
 
@@ -1044,6 +1199,14 @@ async function handleBack():
 }
 
 
+.member-form-grid {
+
+  margin-top:
+    20px;
+
+}
+
+
 .form-grid {
 
   display:
@@ -1192,6 +1355,17 @@ async function handleBack():
   box-shadow:
     0 0 0 3px
     rgba(49, 87, 214, .12);
+
+}
+
+
+.field input:read-only {
+
+  color:
+    #475569;
+
+  background:
+    #f8fafc;
 
 }
 
