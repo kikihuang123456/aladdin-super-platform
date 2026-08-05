@@ -24,18 +24,31 @@ import financeRoutes
 
 import { registerPermissionGuard } from './permission'
 const routes: RouteRecordRaw[] = [
+
   ...authRoutes,
+
   ...systemRoutes,
+
   ...dashboardRoutes,
+
   ...memberRoutes,
+
   ...merchantRoutes,
+
   ...dealerRoutes,
+
   ...mallRoutes,
+
   ...mallCategoryRoutes,
+
   ...travelRoutes,
+
   ...aiRoutes,
+
   ...orderRoutes,
+
   ...financeRoutes,
+
 ]
 
 const router = createRouter({

@@ -20,7 +20,12 @@ import {
 import DealerRegionCapacityRuleAlert
 from './DealerRegionCapacityRuleAlert.vue'
 
+import DealerRegionCandidateSelector
+from './DealerRegionCandidateSelector.vue'
 
+import {
+  useDealerRegionCandidateStore,
+} from '../../stores/dealer-region-candidate'
 
 interface Props {
 
@@ -55,48 +60,9 @@ const emit =
 const capacityRuleStore =
   useDealerRegionCapacityRuleStore()
 
+const candidateStore =
+  useDealerRegionCandidateStore()
 
-
-// 暫時模擬經銷商資料
-// 後續再改接正式 Dealer API
-
-const dealers =
-  ref([
-
-    {
-      id:
-        'dealer-001',
-
-      name:
-        '王小明',
-
-      phone:
-        '0912-000-001',
-    },
-
-    {
-      id:
-        'dealer-002',
-
-      name:
-        '李小華',
-
-      phone:
-        '0912-000-002',
-    },
-
-    {
-      id:
-        'dealer-003',
-
-      name:
-        '張先生',
-
-      phone:
-        '0912-000-003',
-    },
-
-  ])
 
 
 
@@ -257,35 +223,7 @@ async function checkSelectedCapacity(){
 
 
 
-function toggleDealer(
-  dealerId: string,
-){
 
-  const index =
-    selectedDealerIds.value
-      .indexOf(
-        dealerId,
-      )
-
-
-  if(
-    index >= 0
-  ){
-
-    selectedDealerIds.value.splice(
-      index,
-      1,
-    )
-
-  }else{
-
-    selectedDealerIds.value.push(
-      dealerId,
-    )
-
-  }
-
-}
 
 
 
@@ -422,6 +360,7 @@ async function handleConfirm(){
     dealerIds,
   )
 
+  await candidateStore.fetchCandidates()
 
   // emit 不會等待父層 async 函式，
   // 因此恢復按鈕狀態。
@@ -575,70 +514,22 @@ watch(
 
 
 
-    <section class="dealer-section">
+    
 
-      <div class="section-title">
+      <section class="dealer-section">
 
-        <h3>
-          選擇經銷商
-        </h3>
+  <DealerRegionCandidateSelector
+    v-model="
+      selectedDealerIds
+    "
+    :disabled="
+      submitting
+      ||
+      capacityRuleStore.loading
+    "
+  />
 
-        <span>
-          已選擇
-          {{ selectedDealerIds.length }}
-          位
-        </span>
-
-      </div>
-
-
-      <div class="dealer-list">
-
-        <label
-          v-for="dealer in dealers"
-          :key="dealer.id"
-          class="dealer-item"
-          :class="{
-            selected:
-              selectedDealerIds.includes(
-                dealer.id,
-              ),
-          }"
-        >
-
-          <input
-            type="checkbox"
-            :checked="
-              selectedDealerIds.includes(
-                dealer.id,
-              )
-            "
-            :disabled="submitting"
-            @change="
-              toggleDealer(
-                dealer.id,
-              )
-            "
-          >
-
-
-          <span class="dealer-content">
-
-            <strong>
-              {{ dealer.name }}
-            </strong>
-
-            <small>
-              {{ dealer.phone }}
-            </small>
-
-          </span>
-
-        </label>
-
-      </div>
-
-    </section>
+</section>
 
 
 

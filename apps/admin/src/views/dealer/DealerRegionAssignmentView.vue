@@ -40,7 +40,9 @@ from '../../components/dealer/DealerRegionHistoryDialog.vue'
 import DealerRegionCapacityRuleAlert
 from '../../components/dealer/DealerRegionCapacityRuleAlert.vue'
 
-
+import {
+  useDealerRegionCandidateStore,
+} from '../../stores/dealer-region-candidate'
 
 const dealerRegionStore =
   useDealerRegionStore()
@@ -49,7 +51,8 @@ const dealerRegionStore =
 const capacityRuleStore =
   useDealerRegionCapacityRuleStore()
 
-
+const candidateStore =
+  useDealerRegionCandidateStore()
 
 const successMessage =
   ref('')
@@ -81,7 +84,6 @@ async function loadRegions(){
   await dealerRegionStore.fetchRegions()
 
 }
-
 
 
 async function confirmAssign(
@@ -205,11 +207,14 @@ async function confirmAssign(
   }
 
 
-  await dealerRegionStore.fetchRegions()
+ await dealerRegionStore.fetchRegions()
 
 
-  successMessage.value =
-    `經銷商區域指派成功，共完成 ${dealerIds.length} 位經銷商。`
+await candidateStore.fetchCandidates()
+
+
+successMessage.value =
+  `經銷商區域指派成功，共完成 ${dealerIds.length} 位經銷商。`
 
 
   closeAssignDialog()
