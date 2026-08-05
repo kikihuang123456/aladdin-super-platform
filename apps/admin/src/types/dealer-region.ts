@@ -5,6 +5,8 @@
  *
  * M05-04 Dealer Region Assignment
  *
+ * M05-05 Dealer Region Dashboard
+ *
  * Type Definitions
  */
 
@@ -22,24 +24,112 @@ export interface DealerRegion {
   name: string
 
   market:
-    'taiwan'
-    |
-    'china'
+    | 'taiwan'
+    | 'china'
+
 
   province?: string | null
 
+
   city?: string | null
 
+
   status:
-    'active'
-    |
-    'disabled'
+    | 'active'
+    | 'disabled'
+
 
   dealerCount: number
 
+
   createdAt: string
 
+
   updatedAt: string
+
+}
+
+
+
+// =================================
+// Dashboard Ranking Item
+// =================================
+
+export interface DealerRegionRankingItem {
+
+
+  id:string
+
+
+  name:string
+
+
+  dealerCount:number
+
+
+}
+
+
+
+// =================================
+// Dashboard Statistics Item
+// =================================
+
+export interface DealerRegionStatisticsItem {
+
+
+  id:string
+
+
+  name:string
+
+
+  market:
+    | 'taiwan'
+    | 'china'
+
+
+  dealerCount:number
+
+
+}
+
+
+
+// =================================
+// M05-05 Region Dashboard
+// =================================
+
+export interface DealerRegionDashboard {
+
+
+  totalRegions:number
+
+
+  activeRegions:number
+
+
+  taiwanRegions:number
+
+
+  chinaRegions:number
+
+
+  ranking:
+    DealerRegionRankingItem[]
+
+
+  regionStatistics:
+    DealerRegionStatisticsItem[]
+
+
+  regions:
+    DealerRegion[]
+
+
+  assignments:
+    DealerRegionAssignment[]
+
 
 }
 
@@ -146,15 +236,13 @@ export interface DealerRegionFilters {
 
 
   market?:
-    'taiwan'
-    |
-    'china'
+    | 'taiwan'
+    | 'china'
 
 
   status?:
-    'active'
-    |
-    'disabled'
+    | 'active'
+    | 'disabled'
 
 
   page?:
@@ -251,7 +339,7 @@ export interface DealerRegionAssignmentResponse {
 
 
 // =================================
-// Region Assignment Mutation
+// Region Assignment Request
 // =================================
 
 export interface DealerRegionAssignRequest {
@@ -351,23 +439,37 @@ export interface DealerRegionLogListResponse {
     string
 
 }
+
+
+
 // =================================
 // Region History Log Item
 // =================================
 
 export interface DealerRegionHistoryItem {
 
+
   id:string
+
 
   dealerId:string
 
-  previousRegionId?:string | null
 
-  previousRegionName?:string | null
+  previousRegionId?:
+    string | null
 
-  nextRegionId?:string | null
 
-  nextRegionName?:string | null
+  previousRegionName?:
+    string | null
+
+
+  nextRegionId?:
+    string | null
+
+
+  nextRegionName?:
+    string | null
+
 
   actionType:
     | 'assign'
@@ -375,12 +477,16 @@ export interface DealerRegionHistoryItem {
     | 'unassign'
 
 
-  operatorId?:string | null
+  operatorId?:
+    string | null
 
-  operatorName?:string | null
+
+  operatorName?:
+    string | null
 
 
-  remark?:string | null
+  remark?:
+    string | null
 
 
   createdAt:string

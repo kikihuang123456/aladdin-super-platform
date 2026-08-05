@@ -7,6 +7,10 @@ const dealerRoutes:
 RouteRecordRaw[] = [
 
 
+  // =================================
+  // Dealer List
+  // =================================
+
   {
     path:
       '/dealers',
@@ -36,6 +40,10 @@ RouteRecordRaw[] = [
 
   },
 
+
+  // =================================
+  // Dealer Detail
+  // =================================
 
   {
     path:
@@ -67,6 +75,10 @@ RouteRecordRaw[] = [
   },
 
 
+  // =================================
+  // M05-04 Dealer Region Assignment
+  // =================================
+
   {
     path:
       '/dealer/region-assignment',
@@ -84,6 +96,108 @@ RouteRecordRaw[] = [
 
       title:
         '區域指派管理',
+
+      requiresAuth:
+        true,
+
+      permissions: [
+        'dealer.view',
+      ],
+
+    },
+
+  },
+
+
+  // =================================
+  // M05-05 Dealer Region Dashboard
+  // =================================
+
+  {
+    path:
+      '/dealer/region-dashboard',
+
+    name:
+      'DealerRegionDashboard',
+
+    component:
+      () =>
+        import(
+          '../../views/dealer/DealerRegionDashboardView.vue'
+        ),
+
+    meta: {
+
+      title:
+        '經銷商區域 Dashboard',
+
+      requiresAuth:
+        true,
+
+      permissions: [
+        'dealer.view',
+      ],
+
+    },
+
+  },
+
+
+  // =================================
+  // M05-06 Dealer Region Analytics
+  // =================================
+
+  {
+    path:
+      '/dealer/region-analytics',
+
+    name:
+      'DealerRegionAnalytics',
+
+    component:
+      () =>
+        import(
+          '../../views/dealer/DealerRegionAnalyticsView.vue'
+        ),
+
+    meta: {
+
+      title:
+        '經銷商區域分析',
+
+      requiresAuth:
+        true,
+
+      permissions: [
+        'dealer.view',
+      ],
+
+    },
+
+  },
+
+
+  // =================================
+  // M05-07 Dealer Region Capacity
+  // =================================
+
+  {
+    path:
+      '/dealer/region-capacity',
+
+    name:
+      'DealerRegionCapacity',
+
+    component:
+      () =>
+        import(
+          '../../views/dealer/DealerRegionCapacityView.vue'
+        ),
+
+    meta: {
+
+      title:
+        '經銷商區域容量管理',
 
       requiresAuth:
         true,
