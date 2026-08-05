@@ -59,6 +59,12 @@ reactive<DealerCreateForm>({
   memberId:
     '',
 
+  /*
+   * 經銷商編號不再由前端產生。
+   * 建立時保持空字串，
+   * 交由 PostgreSQL Trigger 自動產號。
+   */
+
   dealerNo:
     '',
 
@@ -130,48 +136,9 @@ function normalizeNumber(
 
 
 
-function generateDealerNo(
-  member:
-    MemberListItem,
-): string {
-
-  const memberCode =
-    member.memberCode
-      .trim()
-      .toUpperCase()
-
-
-  if(
-    memberCode
-  ){
-
-    return memberCode.startsWith(
-      'DEA-',
-    )
-      ? memberCode
-      : `DEA-${memberCode}`
-
-  }
-
-
-  const shortId =
-    member.id
-      .replace(
-        /-/g,
-        '',
-      )
-      .slice(
-        0,
-        8,
-      )
-      .toUpperCase()
-
-
-  return `DEA-${shortId}`
-
-}
-
-
+// =================================
+// Member Select
+// =================================
 
 function handleMemberSelect(
   member:
@@ -180,6 +147,10 @@ function handleMemberSelect(
 
   form.memberId =
     member.id
+
+
+  form.dealerNo =
+    ''
 
 
   form.name =
@@ -198,29 +169,19 @@ function handleMemberSelect(
     ''
 
 
-  /*
-   * 尚未手動設定經銷商編號時，
-   * 才自動產生預設編號。
-   */
-
-  if(
-    !form.dealerNo.trim()
-  ){
-
-    form.dealerNo =
-      generateDealerNo(
-        member,
-      )
-
-  }
-
-
   localError.value =
     ''
+
+
+  store.clearCreateResult()
 
 }
 
 
+
+// =================================
+// Member Clear
+// =================================
 
 function handleMemberClear(){
 
@@ -254,6 +215,10 @@ function handleMemberClear(){
 
 
 
+// =================================
+// Form Validation
+// =================================
+
 function validateForm():
   boolean {
 
@@ -273,16 +238,10 @@ function validateForm():
   }
 
 
-  if(
-    !form.dealerNo.trim()
-  ){
-
-    localError.value =
-      '請填寫經銷商編號。'
-
-    return false
-
-  }
+  /*
+   * dealerNo 不再進行必填驗證。
+   * 建立時由資料庫 Trigger 自動產生。
+   */
 
 
   if(
@@ -320,11 +279,19 @@ function validateForm():
 
 
 
+// =================================
+// Submit
+// =================================
+
 async function handleSubmit():
   Promise<void> {
 
   submitted.value =
     true
+
+
+  localError.value =
+    ''
 
 
   store.clearCreateResult()
@@ -345,8 +312,14 @@ async function handleSubmit():
       memberId:
         form.memberId.trim(),
 
+      /*
+       * 傳入空字串，
+       * createDealer API 會轉為 null，
+       * 再由資料庫 Trigger 產生正式編號。
+       */
+
       dealerNo:
-        form.dealerNo.trim(),
+        '',
 
       name:
         form.name.trim(),
@@ -425,6 +398,7 @@ async function handleSubmit():
 
 
   await router.push({
+
     name:
       'dealer-detail',
 
@@ -434,11 +408,16 @@ async function handleSubmit():
         dealer.id,
 
     },
+
   })
 
 }
 
 
+
+// =================================
+// Back
+// =================================
 
 async function handleBack():
   Promise<void> {
@@ -447,8 +426,10 @@ async function handleBack():
 
 
   await router.push({
+
     name:
       'dealer-list',
+
   })
 
 }
@@ -562,21 +543,17 @@ async function handleBack():
 
             <span>
               經銷商編號
-              <b>*</b>
             </span>
 
             <input
-              v-model="form.dealerNo"
               type="text"
-              autocomplete="off"
-              placeholder="選擇會員後自動產生"
-              :disabled="
-                store.createLoading
-              "
+              value="由系統建立後自動產生"
+              readonly
+              disabled
             >
 
             <small>
-              系統會依會員編號自動產生，建立前仍可修改。
+              系統將透過資料庫 Sequence 自動產生正式編號，例如 DEA-100002。
             </small>
 
           </label>

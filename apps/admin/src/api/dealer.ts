@@ -1427,7 +1427,10 @@ export async function createDealer(
 
 
   const dealerNo =
-    input.dealerNo.trim()
+  input.dealerNo
+    ?.trim()
+  ||
+  ''
 
 
   const name =
@@ -1479,24 +1482,7 @@ export async function createDealer(
   }
 
 
-  if(
-    !dealerNo
-  ){
 
-    return {
-
-      success:
-        false,
-
-      message:
-        '經銷商編號不可空白。',
-
-      error:
-        '經銷商編號不可空白。',
-
-    }
-
-  }
 
 
   if(
@@ -1528,10 +1514,14 @@ export async function createDealer(
     Record<string, unknown> = {
 
       dealer_no:
-        dealerNo,
+  dealerNo
+  ||
+  null,
 
-      dealer_code:
-        dealerNo,
+dealer_code:
+  dealerNo
+  ||
+  null,
 
       member_id:
         memberId,
