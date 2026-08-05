@@ -254,306 +254,540 @@ function normalizeApiError(
 
 
   if(
-    typeof errorValue === 'object'
-    &&
-    errorValue !== null
+    typeof errorValue !== 'object'
+    ||
+    errorValue === null
   ){
 
-    const errorRecord =
-      errorValue as Record<
-        string,
-        unknown
-      >
-
-
-    const code =
-      typeof errorRecord.code === 'string'
-        ? errorRecord.code
-        : ''
-
-
-    const message =
-      typeof errorRecord.message === 'string'
-        ? errorRecord.message
-        : ''
-
-
-    const details =
-      typeof errorRecord.details === 'string'
-        ? errorRecord.details
-        : ''
-
-
-    const hint =
-      typeof errorRecord.hint === 'string'
-        ? errorRecord.hint
-        : ''
-
-
-    const combinedText =
-      [
-        message,
-        details,
-        hint,
-      ]
-        .join(' ')
-        .toLowerCase()
-
-
-    /*
-     * PostgreSQL 23505：
-     * Unique constraint violation
-     */
-
-    if(
-      code === '23505'
-    ){
-
-      if(
-        combinedText.includes(
-          'idx_dealers_member_id_unique',
-        )
-        ||
-        combinedText.includes(
-          'member_id',
-        )
-      ){
-
-        return '此會員已建立經銷商資料，無法重複建立。'
-
-      }
-
-
-      if(
-        combinedText.includes(
-          'idx_dealers_dealer_no',
-        )
-        ||
-        combinedText.includes(
-          'dealers_dealer_code_key',
-        )
-        ||
-        combinedText.includes(
-          'dealer_no',
-        )
-        ||
-        combinedText.includes(
-          'dealer_code',
-        )
-      ){
-
-        return '此經銷商編號已被使用，請更換其他編號。'
-
-      }
-
-
-      if(
-        combinedText.includes(
-          'idx_dealers_email_unique_normalized',
-        )
-        ||
-        combinedText.includes(
-          'email',
-        )
-      ){
-
-        return '此電子信箱已被其他經銷商使用。'
-
-      }
-
-
-      if(
-        combinedText.includes(
-          'idx_dealers_phone_unique_normalized',
-        )
-        ||
-        combinedText.includes(
-          'phone',
-        )
-      ){
-
-        return '此手機號碼已被其他經銷商使用。'
-
-      }
-
-
-      return '資料已存在，請確認會員、經銷商編號或聯絡資訊是否重複。'
-
-    }
-
-
-    /*
-     * PostgreSQL 23503：
-     * Foreign key constraint violation
-     */
-
-    if(
-      code === '23503'
-    ){
-
-      if(
-        combinedText.includes(
-          'member_id',
-        )
-        ||
-        combinedText.includes(
-          'members',
-        )
-      ){
-
-        return '選擇的會員不存在，請重新搜尋並選擇會員。'
-
-      }
-
-
-      if(
-        combinedText.includes(
-          'region_id',
-        )
-        ||
-        combinedText.includes(
-          'dealer_regions',
-        )
-      ){
-
-        return '指定的經銷商區域不存在，請重新選擇區域。'
-
-      }
-
-
-      return '關聯資料不存在，請重新確認會員或區域資料。'
-
-    }
-
-
-    /*
-     * PostgreSQL 23502：
-     * Not-null constraint violation
-     */
-
-    if(
-      code === '23502'
-    ){
-
-      if(
-        combinedText.includes(
-          'member_id',
-        )
-      ){
-
-        return '會員資料不可空白。'
-
-      }
-
-
-      if(
-        combinedText.includes(
-          'dealer_no',
-        )
-        ||
-        combinedText.includes(
-          'dealer_code',
-        )
-      ){
-
-        return '經銷商編號不可空白。'
-
-      }
-
-
-      if(
-        combinedText.includes(
-          'name',
-        )
-      ){
-
-        return '經銷商姓名不可空白。'
-
-      }
-
-
-      return '必要欄位不可空白，請檢查表單內容。'
-
-    }
-
-
-    /*
-     * PostgreSQL 23514：
-     * Check constraint violation
-     */
-
-    if(
-      code === '23514'
-    ){
-
-      if(
-        combinedText.includes(
-          'dealers_counts_nonnegative_check',
-        )
-      ){
-
-        return '人數、業績與佣金不可小於 0。'
-
-      }
-
-
-      if(
-        combinedText.includes(
-          'dealers_level_check',
-        )
-      ){
-
-        return '經銷商等級不符合系統規則。'
-
-      }
-
-
-      if(
-        combinedText.includes(
-          'dealers_market_check',
-        )
-      ){
-
-        return '所屬市場不符合系統規則。'
-
-      }
-
-
-      if(
-        combinedText.includes(
-          'dealers_status_check',
-        )
-      ){
-
-        return '經銷商狀態不符合系統規則。'
-
-      }
-
-
-      return '資料不符合系統規則，請檢查輸入內容。'
-
-    }
-
-
-    /*
-     * Supabase RLS
-     */
-
-    if(
-      code === '42501'
+    return fallback
+
+  }
+
+
+  const errorRecord =
+    errorValue as Record<
+      string,
+      unknown
+    >
+
+
+  const code =
+    typeof errorRecord.code ===
+      'string'
+      ? errorRecord.code
+      : ''
+
+
+  const message =
+    typeof errorRecord.message ===
+      'string'
+      ? errorRecord.message
+      : ''
+
+
+  const details =
+    typeof errorRecord.details ===
+      'string'
+      ? errorRecord.details
+      : ''
+
+
+  const hint =
+    typeof errorRecord.hint ===
+      'string'
+      ? errorRecord.hint
+      : ''
+
+
+  const combinedText =
+    [
+      code,
+      message,
+      details,
+      hint,
+    ]
+      .join(' ')
+      .toLowerCase()
+
+
+  // =================================
+  // RPC 不存在或參數不相容
+  // =================================
+
+  if(
+    code === 'PGRST202'
+    ||
+    code === '42883'
+    ||
+    combinedText.includes(
+      'create_dealer_with_new_member',
+    )
+    &&
+    (
+      combinedText.includes(
+        'could not find the function',
+      )
       ||
       combinedText.includes(
-        'row-level security',
+        'does not exist',
+      )
+      ||
+      combinedText.includes(
+        'function not found',
+      )
+    )
+  ){
+
+    return '建立經銷商服務尚未完成部署，請聯絡系統管理員。'
+
+  }
+
+
+  // =================================
+  // PostgreSQL 23505
+  // Unique constraint violation
+  // =================================
+
+  if(
+    code === '23505'
+  ){
+
+    if(
+      combinedText.includes(
+        'idx_dealers_member_id_unique',
+      )
+      ||
+      combinedText.includes(
+        'dealers_member_id',
+      )
+      ||
+      combinedText.includes(
+        'member_id'
+      )
+      &&
+      combinedText.includes(
+        'dealers',
       )
     ){
 
-      return '目前帳號沒有執行此操作的權限。'
+      return '此會員已經具有經銷商身分，無法重複建立。'
 
     }
 
 
-    const parts = [
+    if(
+      combinedText.includes(
+        'members_email_key',
+      )
+      ||
+      combinedText.includes(
+        'idx_members_email',
+      )
+      ||
+      combinedText.includes(
+        'members'
+      )
+      &&
+      combinedText.includes(
+        'email',
+      )
+    ){
 
+      return '此電子信箱已建立會員資料，請改用其他信箱或選擇既有會員。'
+
+    }
+
+
+    if(
+      combinedText.includes(
+        'idx_dealers_email_unique_normalized',
+      )
+      ||
+      combinedText.includes(
+        'dealers_email',
+      )
+    ){
+
+      return '此電子信箱已被其他經銷商使用。'
+
+    }
+
+
+    if(
+      combinedText.includes(
+        'idx_dealers_phone_unique_normalized',
+      )
+      ||
+      combinedText.includes(
+        'dealers_phone',
+      )
+    ){
+
+      return '此手機號碼已被其他經銷商使用。'
+
+    }
+
+
+    if(
+      combinedText.includes(
+        'members_member_code_key',
+      )
+      ||
+      combinedText.includes(
+        'member_code',
+      )
+    ){
+
+      return '會員編號發生重複，請重新提交；若持續發生，請聯絡系統管理員。'
+
+    }
+
+
+    if(
+      combinedText.includes(
+        'idx_dealers_dealer_no',
+      )
+      ||
+      combinedText.includes(
+        'dealers_dealer_code_key',
+      )
+      ||
+      combinedText.includes(
+        'dealer_no',
+      )
+      ||
+      combinedText.includes(
+        'dealer_code',
+      )
+    ){
+
+      return '經銷商編號發生重複，請重新提交；若持續發生，請聯絡系統管理員。'
+
+    }
+
+
+    if(
+      combinedText.includes(
+        'phone',
+      )
+    ){
+
+      return '此手機號碼已被使用，請改用其他手機號碼。'
+
+    }
+
+
+    if(
+      combinedText.includes(
+        'email',
+      )
+    ){
+
+      return '此電子信箱已被使用，請改用其他電子信箱。'
+
+    }
+
+
+    return '資料已存在，請確認會員、手機、電子信箱或編號是否重複。'
+
+  }
+
+
+  // =================================
+  // PostgreSQL 23503
+  // Foreign key constraint violation
+  // =================================
+
+  if(
+    code === '23503'
+  ){
+
+    if(
+      combinedText.includes(
+        'region_id',
+      )
+      ||
+      combinedText.includes(
+        'dealer_regions',
+      )
+    ){
+
+      return '指定的經銷商區域不存在，請清除區域 ID 或重新選擇區域。'
+
+    }
+
+
+    if(
+      combinedText.includes(
+        'member_id',
+      )
+      ||
+      combinedText.includes(
+        'members',
+      )
+    ){
+
+      return '選擇的會員不存在，請重新搜尋並選擇會員。'
+
+    }
+
+
+    return '關聯資料不存在，請重新確認會員或區域資料。'
+
+  }
+
+
+  // =================================
+  // PostgreSQL 23502
+  // Not-null constraint violation
+  // =================================
+
+  if(
+    code === '23502'
+  ){
+
+    if(
+      combinedText.includes(
+        'name',
+      )
+    ){
+
+      return '經銷商姓名不可空白。'
+
+    }
+
+
+    if(
+      combinedText.includes(
+        'member_id',
+      )
+    ){
+
+      return '會員資料不可空白。'
+
+    }
+
+
+    if(
+      combinedText.includes(
+        'dealer_no',
+      )
+      ||
+      combinedText.includes(
+        'dealer_code',
+      )
+    ){
+
+      return '經銷商編號產生失敗，請重新提交。'
+
+    }
+
+
+    return '必要欄位不可空白，請檢查表單內容。'
+
+  }
+
+
+  // =================================
+  // PostgreSQL 23514
+  // Check constraint violation
+  // =================================
+
+  if(
+    code === '23514'
+  ){
+
+    if(
+      combinedText.includes(
+        'dealers_market_check',
+      )
+    ){
+
+      return '所屬市場設定錯誤，請重新選擇台灣、中國或跨境市場。'
+
+    }
+
+
+    if(
+      combinedText.includes(
+        'dealers_level_check',
+      )
+    ){
+
+      return '經銷商等級設定錯誤，請重新選擇經銷等級。'
+
+    }
+
+
+    if(
+      combinedText.includes(
+        'dealers_status_check',
+      )
+    ){
+
+      return '帳號狀態設定錯誤，請重新選擇帳號狀態。'
+
+    }
+
+
+    if(
+      combinedText.includes(
+        'dealers_counts_nonnegative_check',
+      )
+      ||
+      combinedText.includes(
+        'direct_count',
+      )
+      ||
+      combinedText.includes(
+        'team_count',
+      )
+      ||
+      combinedText.includes(
+        'team_sales',
+      )
+      ||
+      combinedText.includes(
+        'total_commission',
+      )
+    ){
+
+      return '直推人數、團隊人數、團隊業績與累計佣金不可小於 0。'
+
+    }
+
+
+    return '資料不符合系統規則，請檢查市場、等級、狀態及業績資料。'
+
+  }
+
+
+  // =================================
+  // PostgreSQL 22023
+  // RPC 主動驗證錯誤
+  // =================================
+
+  if(
+    code === '22023'
+  ){
+
+    if(
+      message
+    ){
+
+      return message
+
+    }
+
+
+    return '提交資料格式不正確，請檢查表單內容。'
+
+  }
+
+
+  // =================================
+  // UUID 格式錯誤
+  // =================================
+
+  if(
+    code === '22P02'
+    ||
+    combinedText.includes(
+      'invalid input syntax for type uuid',
+    )
+  ){
+
+    if(
+      combinedText.includes(
+        'region',
+      )
+    ){
+
+      return '區域 ID 格式不正確，請清除後重新選擇區域。'
+
+    }
+
+
+    return '資料識別碼格式不正確，請重新操作。'
+
+  }
+
+
+  // =================================
+  // Supabase RLS / 權限不足
+  // =================================
+
+  if(
+    code === '42501'
+    ||
+    combinedText.includes(
+      'row-level security',
+    )
+    ||
+    combinedText.includes(
+      'permission denied',
+    )
+    ||
+    combinedText.includes(
+      'insufficient privilege',
+    )
+  ){
+
+    return '目前登入帳號沒有建立經銷商的權限，請確認管理員角色與資料庫權限。'
+
+  }
+
+
+  // =================================
+  // JWT / 登入狀態失效
+  // =================================
+
+  if(
+    code === 'PGRST301'
+    ||
+    combinedText.includes(
+      'jwt expired',
+    )
+    ||
+    combinedText.includes(
+      'invalid jwt',
+    )
+  ){
+
+    return '登入狀態已失效，請重新登入後再操作。'
+
+  }
+
+
+  // =================================
+  // 網路或服務連線錯誤
+  // =================================
+
+  if(
+    combinedText.includes(
+      'failed to fetch',
+    )
+    ||
+    combinedText.includes(
+      'networkerror',
+    )
+    ||
+    combinedText.includes(
+      'network request failed',
+    )
+  ){
+
+    return '目前無法連線至資料庫服務，請檢查網路後重新提交。'
+
+  }
+
+
+  // =================================
+  // 未分類錯誤
+  // =================================
+
+  const parts =
+    [
       message,
 
       details,
@@ -565,17 +799,19 @@ function normalizeApiError(
       code
         ? `錯誤代碼：${code}`
         : '',
+    ]
+      .filter(
+        Boolean,
+      )
 
-    ].filter(Boolean)
 
+  if(
+    parts.length > 0
+  ){
 
-    if(
-      parts.length > 0
-    ){
-
-      return parts.join('；')
-
-    }
+    return parts.join(
+      '；',
+    )
 
   }
 
