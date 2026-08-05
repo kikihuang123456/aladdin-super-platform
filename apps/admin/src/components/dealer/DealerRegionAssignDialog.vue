@@ -3,6 +3,7 @@
 import {
   computed,
   ref,
+  watch,
 } from 'vue'
 
 
@@ -11,10 +12,20 @@ import type {
 } from '../../types/dealer-region'
 
 
+import {
+  useDealerRegionCapacityRuleStore,
+} from '../../stores/dealer-region-capacity-rule'
+
+
+import DealerRegionCapacityRuleAlert
+from './DealerRegionCapacityRuleAlert.vue'
+
+
 
 interface Props {
 
-  visible: boolean
+  visible:
+    boolean
 
   region:
     DealerRegion | null
@@ -41,30 +52,48 @@ const emit =
 
 
 
+const capacityRuleStore =
+  useDealerRegionCapacityRuleStore()
+
+
+
 // 暫時模擬經銷商資料
-// 下一步會改接 Dealer API
+// 後續再改接正式 Dealer API
 
 const dealers =
   ref([
 
     {
-      id: 'dealer-001',
-      name: '王小明',
-      phone: '0912-000-001',
+      id:
+        'dealer-001',
+
+      name:
+        '王小明',
+
+      phone:
+        '0912-000-001',
     },
 
-
     {
-      id: 'dealer-002',
-      name: '李小華',
-      phone: '0912-000-002',
+      id:
+        'dealer-002',
+
+      name:
+        '李小華',
+
+      phone:
+        '0912-000-002',
     },
 
-
     {
-      id: 'dealer-003',
-      name: '張先生',
-      phone: '0912-000-003',
+      id:
+        'dealer-003',
+
+      name:
+        '張先生',
+
+      phone:
+        '0912-000-003',
     },
 
   ])
@@ -74,42 +103,174 @@ const dealers =
 const selectedDealerIds =
   ref<string[]>([])
 
+
 const submitting =
   ref(false)
 
+
+const localError =
+  ref('')
+
+
+// 防止較舊的容量檢查結果
+// 覆蓋最新勾選結果
+
+let capacityCheckSequence =
+  0
+
+
+
 const title =
-  computed(
-    () => {
+computed(
+  () => {
 
-      if(
-        !props.region
-      ){
+    if(
+      !props.region
+    ){
 
-        return '指派經銷商區域'
+      return '指派經銷商區域'
 
-      }
+    }
 
 
-      return `指派至 ${props.region.name}`
+    return `指派至 ${props.region.name}`
 
-    },
-  )
+  },
+)
+
+
+
+const canConfirm =
+computed(
+  () => {
+
+    if(
+      submitting.value
+      ||
+      capacityRuleStore.loading
+    ){
+
+      return false
+
+    }
+
+
+    if(
+      selectedDealerIds.value.length === 0
+    ){
+
+      return false
+
+    }
+
+
+    if(
+      !capacityRuleStore.result
+    ){
+
+      return false
+
+    }
+
+
+    return capacityRuleStore.result.allowed
+
+  },
+)
+
+
+
+async function checkSelectedCapacity(){
+
+  const currentSequence =
+    ++capacityCheckSequence
+
+
+  localError.value =
+    ''
+
+
+  if(
+    !props.visible
+    ||
+    !props.region
+  ){
+
+    capacityRuleStore.clearResult()
+
+    return
+
+  }
+
+
+  if(
+    selectedDealerIds.value.length === 0
+  ){
+
+    capacityRuleStore.clearResult()
+
+    return
+
+  }
+
+
+  const dealerIds =
+    [
+      ...selectedDealerIds.value,
+    ]
+
+
+  const result =
+    await capacityRuleStore
+      .checkAssignmentCapacity({
+
+        regionId:
+          props.region.id,
+
+        dealerIds,
+
+      })
+
+
+  if(
+    currentSequence !==
+    capacityCheckSequence
+  ){
+
+    return
+
+  }
+
+
+  if(
+    !result
+  ){
+
+    localError.value =
+      capacityRuleStore.error
+      ??
+      '區域容量檢查失敗。'
+
+  }
+
+}
 
 
 
 function toggleDealer(
-  dealerId:string,
+  dealerId: string,
 ){
 
-
   const index =
-    selectedDealerIds.value.indexOf(
-      dealerId,
-    )
+    selectedDealerIds.value
+      .indexOf(
+        dealerId,
+      )
 
 
-
-  if(index >= 0){
+  if(
+    index >= 0
+  ){
 
     selectedDealerIds.value.splice(
       index,
@@ -128,7 +289,11 @@ function toggleDealer(
 
 
 
-function handleClose(){
+function resetDialog(){
+
+  capacityCheckSequence +=
+    1
+
 
   submitting.value =
     false
@@ -138,6 +303,21 @@ function handleClose(){
     []
 
 
+  localError.value =
+    ''
+
+
+  capacityRuleStore.clearResult()
+
+}
+
+
+
+function handleClose(){
+
+  resetDialog()
+
+
   emit(
     'close',
   )
@@ -145,11 +325,31 @@ function handleClose(){
 }
 
 
+
 async function handleConfirm(){
+
+  localError.value =
+    ''
+
+
+  if(
+    !props.region
+  ){
+
+    localError.value =
+      '尚未選擇區域。'
+
+    return
+
+  }
+
 
   if(
     selectedDealerIds.value.length === 0
   ){
+
+    localError.value =
+      '請至少選擇一位經銷商。'
 
     return
 
@@ -160,13 +360,145 @@ async function handleConfirm(){
     true
 
 
+  // 確認送出前再檢查一次，
+  // 避免使用過期的容量結果。
+
+  const dealerIds =
+    [
+      ...selectedDealerIds.value,
+    ]
+
+
+  const capacityResult =
+    await capacityRuleStore
+      .checkAssignmentCapacity({
+
+        regionId:
+          props.region.id,
+
+        dealerIds,
+
+      })
+
+
+  if(
+    !capacityResult
+  ){
+
+    localError.value =
+      capacityRuleStore.error
+      ??
+      '無法完成區域容量檢查。'
+
+
+    submitting.value =
+      false
+
+
+    return
+
+  }
+
+
+  if(
+    !capacityResult.allowed
+  ){
+
+    localError.value =
+      capacityResult.message
+
+
+    submitting.value =
+      false
+
+
+    return
+
+  }
+
+
   emit(
     'confirm',
-    selectedDealerIds.value,
+    dealerIds,
   )
+
+
+  // emit 不會等待父層 async 函式，
+  // 因此恢復按鈕狀態。
+  // 指派成功時父層會關閉 Dialog。
+
+  submitting.value =
+    false
 
 }
 
+
+
+watch(
+  selectedDealerIds,
+  async() => {
+
+    await checkSelectedCapacity()
+
+  },
+  {
+    deep:
+      true,
+  },
+)
+
+
+
+watch(
+  () => props.region?.id,
+  async(
+    nextRegionId,
+    previousRegionId,
+  ) => {
+
+    if(
+      nextRegionId ===
+      previousRegionId
+    ){
+
+      return
+
+    }
+
+
+    capacityCheckSequence +=
+      1
+
+
+    selectedDealerIds.value =
+      []
+
+
+    localError.value =
+      ''
+
+
+    capacityRuleStore.clearResult()
+
+  },
+)
+
+
+
+watch(
+  () => props.visible,
+  visible => {
+
+    if(
+      !visible
+    ){
+
+      resetDialog()
+
+    }
+
+  },
+)
 
 </script>
 
@@ -174,23 +506,36 @@ async function handleConfirm(){
 
 <template>
 
-
 <div
   v-if="props.visible"
   class="overlay"
+  @click.self="handleClose"
 >
 
+  <div class="dialog">
 
-  <div
-    class="dialog"
-  >
+    <header class="dialog-header">
 
+      <div>
 
-    <header>
+        <h2>
+          {{ title }}
+        </h2>
 
-      <h2>
-        {{ title }}
-      </h2>
+        <p>
+          選擇經銷商後，系統會即時檢查區域容量。
+        </p>
+
+      </div>
+
+      <button
+        class="close-button"
+        type="button"
+        :disabled="submitting"
+        @click="handleClose"
+      >
+        ×
+      </button>
 
     </header>
 
@@ -202,117 +547,149 @@ async function handleConfirm(){
     >
 
       <div>
-        區域：
-        {{ props.region.name }}
+
+        <span>
+          區域
+        </span>
+
+        <strong>
+          {{ props.region.name }}
+        </strong>
+
       </div>
 
 
       <div>
-        編號：
-        {{ props.region.code }}
-      </div>
 
+        <span>
+          編號
+        </span>
+
+        <strong>
+          {{ props.region.code }}
+        </strong>
+
+      </div>
 
     </section>
 
 
 
+    <section class="dealer-section">
 
-    <section>
+      <div class="section-title">
 
-      <h3>
-        選擇經銷商
-      </h3>
+        <h3>
+          選擇經銷商
+        </h3>
+
+        <span>
+          已選擇
+          {{ selectedDealerIds.length }}
+          位
+        </span>
+
+      </div>
 
 
+      <div class="dealer-list">
 
-      <div
-        v-for="dealer in dealers"
-        :key="dealer.id"
-        class="dealer-item"
-      >
-
-        <label>
+        <label
+          v-for="dealer in dealers"
+          :key="dealer.id"
+          class="dealer-item"
+          :class="{
+            selected:
+              selectedDealerIds.includes(
+                dealer.id,
+              ),
+          }"
+        >
 
           <input
-
             type="checkbox"
-
             :checked="
               selectedDealerIds.includes(
                 dealer.id,
               )
             "
-
+            :disabled="submitting"
             @change="
               toggleDealer(
                 dealer.id,
               )
             "
+          >
 
-          />
 
+          <span class="dealer-content">
 
-          {{ dealer.name }}
+            <strong>
+              {{ dealer.name }}
+            </strong>
 
-          -
+            <small>
+              {{ dealer.phone }}
+            </small>
 
-          {{ dealer.phone }}
-
+          </span>
 
         </label>
 
-
       </div>
-
 
     </section>
 
 
 
-
-   <footer>
-
-
-<button
-
-  :disabled="submitting"
-
-  @click="handleClose"
-
->
-
-取消
-
-</button>
+    <DealerRegionCapacityRuleAlert
+      :result="
+        capacityRuleStore.result
+      "
+      :loading="
+        capacityRuleStore.loading
+      "
+      :error="
+        localError
+        ||
+        capacityRuleStore.error
+      "
+    />
 
 
 
-<button
+    <footer>
 
-  :disabled="submitting"
-
-  @click="handleConfirm"
-
->
-
-  {{
-    submitting
-      ? '提交中...'
-      : '確認指派'
-  }}
-
-</button>
+      <button
+        type="button"
+        class="secondary-button"
+        :disabled="submitting"
+        @click="handleClose"
+      >
+        取消
+      </button>
 
 
-</footer>
+      <button
+        type="button"
+        class="primary-button"
+        :disabled="!canConfirm"
+        @click="handleConfirm"
+      >
+        {{
+          submitting
+            ? '提交中...'
+            : capacityRuleStore.loading
+              ? '容量檢查中...'
+              : '確認指派'
+        }}
+      </button>
 
+    </footer>
 
   </div>
 
-
 </div>
-
 
 </template>
 
@@ -320,83 +697,439 @@ async function handleConfirm(){
 
 <style scoped>
 
+.overlay {
 
-.overlay{
+  position:
+    fixed;
 
-  position:fixed;
+  z-index:
+    1000;
 
-  inset:0;
+  inset:
+    0;
 
-  background:rgba(0,0,0,.35);
+  display:
+    flex;
 
-  display:flex;
+  align-items:
+    center;
 
-  align-items:center;
+  justify-content:
+    center;
 
-  justify-content:center;
+  padding:
+    24px;
 
-}
-
-
-
-.dialog{
-
-  width:420px;
-
-  background:white;
-
-  border-radius:16px;
-
-  padding:24px;
+  background:
+    rgba(16, 24, 40, .52);
 
 }
 
 
+.dialog {
 
-.region-info{
+  width:
+    min(620px, 100%);
 
-  background:#f5f6fa;
+  max-height:
+    calc(100vh - 48px);
 
-  padding:12px;
+  overflow-y:
+    auto;
 
-  border-radius:8px;
+  padding:
+    24px;
 
-  margin-bottom:20px;
+  background:
+    white;
 
-}
+  border-radius:
+    18px;
 
-
-
-.dealer-item{
-
-  padding:10px 0;
-
-}
-
-
-
-footer{
-
-  display:flex;
-
-  justify-content:flex-end;
-
-  gap:12px;
-
-  margin-top:24px;
+  box-shadow:
+    0 24px 48px
+    rgba(16, 24, 40, .18);
 
 }
 
 
-button{
+.dialog-header {
 
-  padding:8px 16px;
+  display:
+    flex;
 
-  border-radius:8px;
+  align-items:
+    flex-start;
 
-  cursor:pointer;
+  justify-content:
+    space-between;
+
+  gap:
+    20px;
 
 }
 
+
+.dialog-header h2 {
+
+  margin:
+    0;
+
+  color:
+    #101828;
+
+}
+
+
+.dialog-header p {
+
+  margin:
+    8px 0 0;
+
+  color:
+    #667085;
+
+  font-size:
+    14px;
+
+}
+
+
+.close-button {
+
+  width:
+    36px;
+
+  height:
+    36px;
+
+  padding:
+    0;
+
+  color:
+    #667085;
+
+  font-size:
+    24px;
+
+  line-height:
+    1;
+
+  background:
+    transparent;
+
+  border:
+    0;
+
+}
+
+
+.region-info {
+
+  display:
+    grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap:
+    12px;
+
+  margin:
+    20px 0;
+
+  padding:
+    16px;
+
+  background:
+    #f9fafb;
+
+  border:
+    1px solid #eaecf0;
+
+  border-radius:
+    12px;
+
+}
+
+
+.region-info div {
+
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  gap:
+    5px;
+
+}
+
+
+.region-info span {
+
+  color:
+    #667085;
+
+  font-size:
+    12px;
+
+}
+
+
+.region-info strong {
+
+  color:
+    #101828;
+
+}
+
+
+.dealer-section {
+
+  margin-bottom:
+    18px;
+
+}
+
+
+.section-title {
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  justify-content:
+    space-between;
+
+  gap:
+    16px;
+
+  margin-bottom:
+    12px;
+
+}
+
+
+.section-title h3 {
+
+  margin:
+    0;
+
+  color:
+    #101828;
+
+}
+
+
+.section-title span {
+
+  color:
+    #667085;
+
+  font-size:
+    13px;
+
+}
+
+
+.dealer-list {
+
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  gap:
+    10px;
+
+}
+
+
+.dealer-item {
+
+  display:
+    flex;
+
+  align-items:
+    center;
+
+  gap:
+    12px;
+
+  padding:
+    14px;
+
+  border:
+    1px solid #d0d5dd;
+
+  border-radius:
+    12px;
+
+  cursor:
+    pointer;
+
+  transition:
+    border-color .2s,
+    background .2s;
+
+}
+
+
+.dealer-item.selected {
+
+  border-color:
+    #344054;
+
+  background:
+    #f9fafb;
+
+}
+
+
+.dealer-content {
+
+  display:
+    flex;
+
+  flex-direction:
+    column;
+
+  gap:
+    4px;
+
+}
+
+
+.dealer-content strong {
+
+  color:
+    #101828;
+
+}
+
+
+.dealer-content small {
+
+  color:
+    #667085;
+
+}
+
+
+footer {
+
+  display:
+    flex;
+
+  justify-content:
+    flex-end;
+
+  gap:
+    12px;
+
+  margin-top:
+    24px;
+
+}
+
+
+button {
+
+  padding:
+    9px 16px;
+
+  border:
+    1px solid #d0d5dd;
+
+  border-radius:
+    8px;
+
+  cursor:
+    pointer;
+
+}
+
+
+button:disabled {
+
+  cursor:
+    not-allowed;
+
+  opacity:
+    .55;
+
+}
+
+
+.secondary-button {
+
+  color:
+    #344054;
+
+  background:
+    white;
+
+}
+
+
+.primary-button {
+
+  color:
+    white;
+
+  background:
+    #101828;
+
+  border-color:
+    #101828;
+
+}
+
+
+@media (
+  max-width: 600px
+) {
+
+  .overlay {
+
+    align-items:
+      flex-end;
+
+    padding:
+      0;
+
+  }
+
+
+  .dialog {
+
+    width:
+      100%;
+
+    max-height:
+      92vh;
+
+    border-radius:
+      18px 18px 0 0;
+
+  }
+
+
+  .region-info {
+
+    grid-template-columns:
+      1fr;
+
+  }
+
+}
 
 </style>
