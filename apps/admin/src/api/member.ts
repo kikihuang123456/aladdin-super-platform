@@ -877,13 +877,28 @@ export async function searchMembersForDealer(
 
 }
 export interface CreateMemberInput {
-  memberCode: string
-  email: string
-  phone: string
-  name: string
-  avatarUrl?: string | null
-  level: number
-  status: MemberRecord['status']
+
+  memberCode?:
+    string | null
+
+  email?:
+    string | null
+
+  phone?:
+    string | null
+
+  name:
+    string
+
+  avatarUrl?:
+    string | null
+
+  level:
+    number
+
+  status:
+    MemberRecord['status']
+
 }
 
 export interface UpdateMemberInput {
@@ -942,16 +957,22 @@ export async function createMember(
 ): Promise<MemberMutationResponse> {
   try {
     const memberCode =
-      normalizeRequiredText(
-        input.memberCode,
-        '會員編號',
-      )
+  normalizeOptionalText(
+    input.memberCode,
+  )
 
-    const email =
-      normalizeRequiredText(
-        input.email,
-        '電子郵件',
-      ).toLowerCase()
+
+const normalizedEmail =
+  normalizeOptionalText(
+    input.email,
+  )
+
+
+const email =
+  normalizedEmail
+    ?.toLowerCase()
+  ??
+  null
 
     const name =
       normalizeRequiredText(
@@ -975,18 +996,31 @@ export async function createMember(
     }
 
     const insertPayload:
-      MemberInsert = {
-        member_code: memberCode,
-        email,
-        phone,
-        name,
-        avatar:
-          normalizeOptionalText(
-            input.avatarUrl,
-          ),
-        level: input.level,
-        status: input.status,
-      }
+  MemberInsert = {
+
+    member_code:
+      memberCode,
+
+    email,
+
+    phone:
+      phone,
+      
+
+    name,
+
+    avatar:
+      normalizeOptionalText(
+        input.avatarUrl,
+      ),
+
+    level:
+      input.level,
+
+    status:
+      input.status,
+
+  }
 
     const {
       data,
@@ -1371,9 +1405,10 @@ export async function updateMember(
         email,
 
         phone:
-          normalizeOptionalText(
-            input.phone,
-          ),
+  normalizeOptionalText(
+    input.phone,
+  ),
+          
 
         name,
 

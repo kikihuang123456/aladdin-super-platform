@@ -121,10 +121,9 @@ async function handleSearch(){
 
   try {
 
-
     const response =
       await searchMembersForDealer(
-        keyword.value,
+        keyword.value.trim(),
       )
 
 
@@ -150,19 +149,31 @@ async function handleSearch(){
       response.message
 
 
+    /*
+     * 搜尋結果只有一位時，
+     * 直接完成會員選取。
+     */
+
+    if(
+      response.members.length === 1
+    ){
+
+      handleSelect(
+        response.members[0],
+      )
+
+    }
+
   }catch(
     errorValue
   ){
-
 
     error.value =
       errorValue instanceof Error
         ? errorValue.message
         : '會員搜尋失敗。'
 
-
   }finally{
-
 
     loading.value =
       false
@@ -182,6 +193,30 @@ function handleSelect(
     member
 
 
+  keyword.value =
+    member.name
+    ||
+    member.memberCode
+    ||
+    member.email
+    ||
+    member.phone
+    ||
+    ''
+
+
+  members.value =
+    []
+
+
+  error.value =
+    null
+
+
+  message.value =
+    `已選擇會員：${member.name}`
+
+
   emit(
     'update:modelValue',
     member.id,
@@ -194,7 +229,6 @@ function handleSelect(
   )
 
 }
-
 
 
 function handleClear(){

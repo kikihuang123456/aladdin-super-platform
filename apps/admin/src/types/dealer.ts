@@ -559,12 +559,22 @@ export interface DealerCreateRequest {
     number
 
 
-  remark?:
+    remark?:
+    string | null
+
+
+  operatorId?:
+    string | null
+
+
+  operatorRole?:
+    string | null
+
+
+  source?:
     string | null
 
 }
-
-
 
 export interface DealerCreateResponse {
 

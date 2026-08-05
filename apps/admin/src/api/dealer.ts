@@ -1664,45 +1664,83 @@ dealer_code:
      * 避免主資料因紀錄表問題而遺失。
      */
 
-    const {
-      error: logError,
-    } =
-      await supabase
-        .from(
-          DEALER_LOG_TABLE,
-        )
-        .insert({
+    const operatorId =
+  input.operatorId
+    ?.trim()
+  ||
+  null
 
-          dealer_id:
-            dealer.id,
 
-          action_type:
-            'create',
+const operatorRole =
+  input.operatorRole
+    ?.trim()
+  ||
+  null
 
-          action_name:
-            '建立經銷商',
 
-          previous_data:
-            null,
+const createSource =
+  input.source
+    ?.trim()
+  ||
+  'admin_web'
 
-          next_data:
-            payload,
 
-          operator_id:
-            null,
+const {
+  error: logError,
+} =
+  await supabase
+    .from(
+      DEALER_LOG_TABLE,
+    )
+    .insert({
 
-          operator_role:
-            null,
+      dealer_id:
+        dealer.id,
 
-          remark:
-            remark
-            ??
-            '後台建立經銷商',
+      action_type:
+        'create',
 
-          created_at:
-            now,
+      action_name:
+        '建立經銷商',
 
-        })
+      previous_data:
+        null,
+
+      /*
+       * 必須使用資料庫建立後回傳的 dealer，
+       * 才會包含 Trigger 自動產生的
+       * dealer_no 與 dealer_code。
+       */
+
+      next_data: {
+
+        ...dealer,
+
+        operation_source:
+          createSource,
+
+      },
+
+      operator_id:
+        operatorId,
+
+      operator_role:
+        operatorRole,
+
+      remark:
+        remark
+        ??
+        (
+          createSource ===
+          'admin_web'
+            ? 'ERP 後台建立經銷商'
+            : `建立經銷商，來源：${createSource}`
+        ),
+
+      created_at:
+        now,
+
+    })
 
 
     if(
@@ -2788,6 +2826,230 @@ export async function getPendingDealers()
         normalizeApiError(
           errorValue,
           '取得待審核經銷商失敗。',
+        ),
+
+    }
+
+  }
+
+}
+export interface CreateDealerWithNewMemberInput {
+
+  name:
+    string
+
+  phone?:
+    string | null
+
+  email?:
+    string | null
+
+  market:
+    string
+
+  level:
+    string
+
+  status:
+    string
+
+  regionId?:
+    string | null
+
+  directCount?:
+    number
+
+  teamCount?:
+    number
+
+  teamSales?:
+    number
+
+  totalCommission?:
+    number
+
+  remark?:
+    string | null
+
+}
+
+
+export interface CreateDealerWithNewMemberResponse {
+
+  success:
+    boolean
+
+  member?:
+    Record<string, unknown>
+
+  dealer?:
+    Dealer
+
+  message:
+    string
+
+  error?:
+    string
+
+}
+
+
+export async function createDealerWithNewMember(
+  input:
+    CreateDealerWithNewMemberInput,
+): Promise<CreateDealerWithNewMemberResponse> {
+
+  try {
+
+    const {
+      data,
+      error,
+    } =
+      await supabase.rpc(
+        'create_dealer_with_new_member',
+        {
+
+          p_name:
+            input.name.trim(),
+
+          p_phone:
+            input.phone
+              ?.trim()
+            ||
+            null,
+
+          p_email:
+            input.email
+              ?.trim()
+              .toLowerCase()
+            ||
+            null,
+
+          p_market:
+            input.market,
+
+          p_level:
+            input.level,
+
+          p_status:
+            input.status,
+
+          p_region_id:
+            input.regionId
+              ?.trim()
+            ||
+            null,
+
+          p_direct_count:
+            input.directCount
+            ??
+            0,
+
+          p_team_count:
+            input.teamCount
+            ??
+            0,
+
+          p_team_sales:
+            input.teamSales
+            ??
+            0,
+
+          p_total_commission:
+            input.totalCommission
+            ??
+            0,
+
+          p_remark:
+            input.remark
+              ?.trim()
+            ||
+            null,
+
+        },
+      )
+
+
+    if(
+      error
+    ){
+
+      throw error
+
+    }
+
+
+    const result =
+      data as {
+
+        success?:
+          boolean
+
+        member?:
+          Record<string, unknown>
+
+        dealer?:
+          Dealer
+
+      } | null
+
+
+    if(
+      !result
+      ||
+      !result.success
+      ||
+      !result.dealer
+    ){
+
+      return {
+
+        success:
+          false,
+
+        message:
+          '新會員與經銷商建立失敗。',
+
+        error:
+          'RPC 未回傳完整建立結果。',
+
+      }
+
+    }
+
+
+    return {
+
+      success:
+        true,
+
+      member:
+        result.member,
+
+      dealer:
+        result.dealer,
+
+      message:
+        '新會員與經銷商建立成功。',
+
+    }
+
+  }catch(
+    errorValue
+  ){
+
+    return {
+
+      success:
+        false,
+
+      message:
+        '新會員與經銷商建立失敗。',
+
+      error:
+        normalizeApiError(
+          errorValue,
+          '建立新會員與經銷商時發生未知錯誤。',
         ),
 
     }

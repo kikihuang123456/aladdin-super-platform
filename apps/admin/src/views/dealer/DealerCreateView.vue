@@ -20,8 +20,18 @@ from '../../components/dealer/DealerMemberSelector.vue'
 
 
 import {
+  createDealerWithNewMember,
+} from '../../api/dealer'
+
+
+import {
   useDealerStore,
 } from '../../stores/dealer'
+
+
+import {
+  useAuthStore,
+} from '../../stores/auth'
 
 
 import type {
@@ -36,6 +46,12 @@ import type {
 
 
 
+type DealerCreateMode =
+  | 'existing_member'
+  | 'new_member'
+
+
+
 const router =
   useRouter()
 
@@ -44,7 +60,17 @@ const store =
   useDealerStore()
 
 
-const submitted =
+const authStore =
+  useAuthStore()
+
+
+const createMode =
+  ref<DealerCreateMode>(
+    'existing_member',
+  )
+
+
+const submitting =
   ref(false)
 
 
@@ -58,12 +84,6 @@ reactive<DealerCreateForm>({
 
   memberId:
     '',
-
-  /*
-   * 經銷商編號不再由前端產生。
-   * 建立時保持空字串，
-   * 交由 PostgreSQL Trigger 自動產號。
-   */
 
   dealerNo:
     '',
@@ -136,9 +156,62 @@ function normalizeNumber(
 
 
 
-// =================================
-// Member Select
-// =================================
+function resetMemberFields(){
+
+  form.memberId =
+    ''
+
+
+  form.dealerNo =
+    ''
+
+
+  form.name =
+    ''
+
+
+  form.phone =
+    ''
+
+
+  form.email =
+    ''
+
+
+  localError.value =
+    ''
+
+
+  store.clearCreateResult()
+
+}
+
+
+
+function handleModeChange(
+  mode:
+    DealerCreateMode,
+){
+
+  if(
+    createMode.value ===
+    mode
+  ){
+
+    return
+
+  }
+
+
+  createMode.value =
+    mode
+
+
+  resetMemberFields()
+
+}
+
+
 
 function handleMemberSelect(
   member:
@@ -179,45 +252,13 @@ function handleMemberSelect(
 
 
 
-// =================================
-// Member Clear
-// =================================
-
 function handleMemberClear(){
 
-  form.memberId =
-    ''
-
-
-  form.dealerNo =
-    ''
-
-
-  form.name =
-    ''
-
-
-  form.phone =
-    ''
-
-
-  form.email =
-    ''
-
-
-  localError.value =
-    ''
-
-
-  store.clearCreateResult()
+  resetMemberFields()
 
 }
 
 
-
-// =================================
-// Form Validation
-// =================================
 
 function validateForm():
   boolean {
@@ -227,6 +268,9 @@ function validateForm():
 
 
   if(
+    createMode.value ===
+      'existing_member'
+    &&
     !form.memberId.trim()
   ){
 
@@ -238,18 +282,15 @@ function validateForm():
   }
 
 
-  /*
-   * dealerNo 不再進行必填驗證。
-   * 建立時由資料庫 Trigger 自動產生。
-   */
-
-
   if(
     !form.name.trim()
   ){
 
     localError.value =
-      '選擇的會員缺少姓名資料。'
+      createMode.value ===
+        'existing_member'
+        ? '選擇的會員缺少姓名資料。'
+        : '請填寫經銷商姓名。'
 
     return false
 
@@ -279,44 +320,14 @@ function validateForm():
 
 
 
-// =================================
-// Submit
-// =================================
-
-async function handleSubmit():
-  Promise<void> {
-
-  submitted.value =
-    true
-
-
-  localError.value =
-    ''
-
-
-  store.clearCreateResult()
-
-
-  if(
-    !validateForm()
-  ){
-
-    return
-
-  }
-
+async function createFromExistingMember():
+  Promise<string | null> {
 
   const payload:
     DealerCreateRequest = {
 
       memberId:
         form.memberId.trim(),
-
-      /*
-       * 傳入空字串，
-       * createDealer API 會轉為 null，
-       * 再由資料庫 Trigger 產生正式編號。
-       */
 
       dealerNo:
         '',
@@ -374,6 +385,21 @@ async function handleSubmit():
         ||
         null,
 
+      operatorId:
+        authStore.user
+          ?.id
+        ??
+        null,
+
+      operatorRole:
+        authStore.user
+          ?.role
+        ??
+        null,
+
+      source:
+        'admin_web_existing_member',
+
     }
 
 
@@ -392,32 +418,177 @@ async function handleSubmit():
       ??
       '經銷商建立失敗。'
 
-    return
+    return null
 
   }
 
 
-  await router.push({
-
-    name:
-      'dealer-detail',
-
-    params: {
-
-      id:
-        dealer.id,
-
-    },
-
-  })
+  return dealer.id
 
 }
 
 
 
-// =================================
-// Back
-// =================================
+async function createWithNewMember():
+  Promise<string | null> {
+
+  const response =
+    await createDealerWithNewMember({
+
+      name:
+        form.name.trim(),
+
+      phone:
+        form.phone.trim()
+        ||
+        null,
+
+      email:
+        form.email.trim()
+          .toLowerCase()
+        ||
+        null,
+
+      market:
+        form.market,
+
+      level:
+        form.level,
+
+      status:
+        form.status,
+
+      regionId:
+        form.regionId.trim()
+        ||
+        null,
+
+      directCount:
+        normalizeNumber(
+          form.directCount,
+        ),
+
+      teamCount:
+        normalizeNumber(
+          form.teamCount,
+        ),
+
+      teamSales:
+        normalizeNumber(
+          form.teamSales,
+        ),
+
+      totalCommission:
+        normalizeNumber(
+          form.totalCommission,
+        ),
+
+      remark:
+        form.remark.trim()
+        ||
+        null,
+
+    })
+
+
+  if(
+    !response.success
+    ||
+    !response.dealer
+  ){
+
+    localError.value =
+      response.error
+      ??
+      response.message
+      ??
+      '新會員與經銷商建立失敗。'
+
+    return null
+
+  }
+
+
+  return response.dealer.id
+
+}
+
+
+
+async function handleSubmit():
+  Promise<void> {
+
+  localError.value =
+    ''
+
+
+  store.clearCreateResult()
+
+
+  if(
+    !validateForm()
+  ){
+
+    return
+
+  }
+
+
+  submitting.value =
+    true
+
+
+  try {
+
+    const dealerId =
+      createMode.value ===
+        'new_member'
+        ? await createWithNewMember()
+        : await createFromExistingMember()
+
+
+    if(
+      !dealerId
+    ){
+
+      return
+
+    }
+
+
+    await router.push({
+
+      name:
+        'dealer-detail',
+
+      params: {
+
+        id:
+          dealerId,
+
+      },
+
+    })
+
+  }catch(
+    errorValue
+  ){
+
+    localError.value =
+      errorValue instanceof Error
+        ? errorValue.message
+        : '建立經銷商時發生未知錯誤。'
+
+  }finally{
+
+    submitting.value =
+      false
+
+  }
+
+}
+
+
 
 async function handleBack():
   Promise<void> {
@@ -456,7 +627,7 @@ async function handleBack():
         </h1>
 
         <p class="page-description">
-          搜尋既有會員，建立經銷商身分並設定市場、等級與初始狀態。
+          可選擇既有會員建立經銷商身分，或直接建立全新的會員與經銷商資料。
         </p>
 
       </div>
@@ -467,6 +638,8 @@ async function handleBack():
         class="secondary-button"
         :disabled="
           store.createLoading
+          ||
+          submitting
         "
         @click="handleBack"
       >
@@ -500,9 +673,92 @@ async function handleBack():
       @submit.prevent="handleSubmit"
     >
 
-      <!-- ============================= -->
-      <!-- 基本資料 -->
-      <!-- ============================= -->
+      <section class="form-section">
+
+        <div class="section-heading">
+
+          <div>
+
+            <h2>
+              建立方式
+            </h2>
+
+            <p>
+              選擇要使用既有會員，或直接建立全新的經銷商。
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="mode-selector">
+
+          <button
+            type="button"
+            class="mode-option"
+            :class="{
+              active:
+                createMode ===
+                'existing_member',
+            }"
+            :disabled="
+              store.createLoading
+              ||
+              submitting
+            "
+            @click="
+              handleModeChange(
+                'existing_member',
+              )
+            "
+          >
+
+            <strong>
+              選擇既有會員
+            </strong>
+
+            <span>
+              將現有會員升級並建立經銷商身分。
+            </span>
+
+          </button>
+
+
+          <button
+            type="button"
+            class="mode-option"
+            :class="{
+              active:
+                createMode ===
+                'new_member',
+            }"
+            :disabled="
+              store.createLoading
+||
+submitting
+            "
+            @click="
+              handleModeChange(
+                'new_member',
+              )
+            "
+          >
+
+            <strong>
+              建立全新經銷商
+            </strong>
+
+            <span>
+              系統會同時建立新會員與經銷商資料。
+            </span>
+
+          </button>
+
+        </div>
+
+      </section>
+
 
       <section class="form-section">
 
@@ -514,8 +770,15 @@ async function handleBack():
               基本資料
             </h2>
 
-            <p>
-              搜尋既有會員並建立經銷商關聯。
+            <p v-if="
+              createMode ===
+              'existing_member'
+            ">
+              搜尋尚未建立經銷商身分的會員。
+            </p>
+
+            <p v-else>
+              填寫新經銷商資料，會員編號及經銷商編號由系統自動產生。
             </p>
 
           </div>
@@ -524,9 +787,15 @@ async function handleBack():
 
 
         <DealerMemberSelector
+          v-if="
+            createMode ===
+            'existing_member'
+          "
           v-model="form.memberId"
           :disabled="
             store.createLoading
+||
+submitting
           "
           @select="
             handleMemberSelect
@@ -542,18 +811,47 @@ async function handleBack():
           <label class="field">
 
             <span>
-              經銷商編號
+              會員編號
             </span>
 
             <input
               type="text"
-              value="由系統建立後自動產生"
+              :value="
+                createMode ===
+                  'new_member'
+                  ? '建立後由系統自動產生'
+                  : (
+                    form.memberId
+                      ? '已選擇既有會員'
+                      : '請先選擇會員'
+                  )
+              "
               readonly
               disabled
             >
 
             <small>
-              系統將透過資料庫 Sequence 自動產生正式編號，例如 DEA-100002。
+              新會員將透過資料庫 Sequence 自動產生 ALD- 編號。
+            </small>
+
+          </label>
+
+
+          <label class="field">
+
+            <span>
+              經銷商編號
+            </span>
+
+            <input
+              type="text"
+              value="建立後由系統自動產生"
+              readonly
+              disabled
+            >
+
+            <small>
+              系統將自動產生正式 DEA- 經銷商編號。
             </small>
 
           </label>
@@ -570,10 +868,20 @@ async function handleBack():
               v-model="form.name"
               type="text"
               autocomplete="name"
-              placeholder="選擇會員後自動帶入"
-              readonly
+              :placeholder="
+                createMode ===
+                  'new_member'
+                  ? '請輸入經銷商姓名'
+                  : '選擇會員後自動帶入'
+              "
+              :readonly="
+                createMode ===
+                'existing_member'
+              "
               :disabled="
                 store.createLoading
+||
+submitting
               "
             >
 
@@ -590,10 +898,20 @@ async function handleBack():
               v-model="form.phone"
               type="tel"
               autocomplete="tel"
-              placeholder="選擇會員後自動帶入"
-              readonly
+              :placeholder="
+                createMode ===
+                  'new_member'
+                  ? '請輸入手機號碼'
+                  : '選擇會員後自動帶入'
+              "
+              :readonly="
+                createMode ===
+                'existing_member'
+              "
               :disabled="
                 store.createLoading
+||
+submitting
               "
             >
 
@@ -610,12 +928,29 @@ async function handleBack():
               v-model="form.email"
               type="email"
               autocomplete="email"
-              placeholder="選擇會員後自動帶入"
-              readonly
+              :placeholder="
+                createMode ===
+                  'new_member'
+                  ? '請輸入電子信箱，可留空'
+                  : '選擇會員後自動帶入'
+              "
+              :readonly="
+                createMode ===
+                'existing_member'
+              "
               :disabled="
                 store.createLoading
+||
+submitting
               "
             >
+
+            <small v-if="
+              createMode ===
+              'new_member'
+            ">
+              電子信箱可留空；有填寫時不可與既有會員重複。
+            </small>
 
           </label>
 
@@ -623,10 +958,6 @@ async function handleBack():
 
       </section>
 
-
-      <!-- ============================= -->
-      <!-- 經銷設定 -->
-      <!-- ============================= -->
 
       <section class="form-section">
 
@@ -660,6 +991,8 @@ async function handleBack():
               v-model="form.market"
               :disabled="
                 store.createLoading
+||
+submitting
               "
             >
 
@@ -691,6 +1024,8 @@ async function handleBack():
               v-model="form.level"
               :disabled="
                 store.createLoading
+||
+submitting
               "
             >
 
@@ -741,7 +1076,9 @@ async function handleBack():
             <select
               v-model="form.status"
               :disabled="
-                store.createLoading
+               store.createLoading
+||
+submitting
               "
             >
 
@@ -783,6 +1120,8 @@ async function handleBack():
               placeholder="建議先留空，建立後再到區域指派管理設定"
               :disabled="
                 store.createLoading
+||
+submitting
               "
             >
 
@@ -796,10 +1135,6 @@ async function handleBack():
 
       </section>
 
-
-      <!-- ============================= -->
-      <!-- 初始業績 -->
-      <!-- ============================= -->
 
       <section class="form-section">
 
@@ -836,7 +1171,10 @@ async function handleBack():
               min="0"
               step="1"
               :disabled="
-                store.createLoading
+            store.createLoading
+||
+submitting
+
               "
             >
 
@@ -857,7 +1195,9 @@ async function handleBack():
               min="0"
               step="1"
               :disabled="
-                store.createLoading
+              store.createLoading
+||
+submitting
               "
             >
 
@@ -879,6 +1219,8 @@ async function handleBack():
               step="1"
               :disabled="
                 store.createLoading
+||
+submitting
               "
             >
 
@@ -900,6 +1242,8 @@ async function handleBack():
               step="1"
               :disabled="
                 store.createLoading
+||
+submitting
               "
             >
 
@@ -909,10 +1253,6 @@ async function handleBack():
 
       </section>
 
-
-      <!-- ============================= -->
-      <!-- 備註 -->
-      <!-- ============================= -->
 
       <section class="form-section">
 
@@ -941,7 +1281,9 @@ async function handleBack():
             maxlength="1000"
             placeholder="請輸入備註"
             :disabled="
-              store.createLoading
+             store.createLoading
+||
+submitting
             "
           />
 
@@ -960,7 +1302,9 @@ async function handleBack():
           type="button"
           class="secondary-button"
           :disabled="
-            store.createLoading
+          store.createLoading
+||
+submitting
           "
           @click="handleBack"
         >
@@ -973,14 +1317,21 @@ async function handleBack():
           class="primary-button"
           :disabled="
             store.createLoading
+||
+submitting
           "
         >
 
           {{
-            store.createLoading
-              ? '建立中...'
-              : '建立經銷商'
-          }}
+  submitting
+    ? (
+      createMode ===
+        'new_member'
+        ? '建立會員與經銷商中...'
+        : '建立經銷商中...'
+    )
+    : '建立經銷商'
+}}
 
         </button>
 
@@ -1172,6 +1523,109 @@ async function handleBack():
 
   font-size:
     14px;
+
+}
+
+
+.mode-selector {
+
+  display:
+    grid;
+
+  grid-template-columns:
+    repeat(
+      2,
+      minmax(0, 1fr)
+    );
+
+  gap:
+    14px;
+
+}
+
+
+.mode-option {
+
+  display:
+    flex;
+
+  min-height:
+    96px;
+
+  align-items:
+    flex-start;
+
+  flex-direction:
+    column;
+
+  gap:
+    7px;
+
+  padding:
+    18px;
+
+  color:
+    #475569;
+
+  text-align:
+    left;
+
+  background:
+    #f8fafc;
+
+  border:
+    1px solid #dbe3ee;
+
+}
+
+
+.mode-option strong {
+
+  color:
+    #0f172a;
+
+  font-size:
+    16px;
+
+}
+
+
+.mode-option span {
+
+  color:
+    #64748b;
+
+  font-size:
+    13px;
+
+  font-weight:
+    500;
+
+  line-height:
+    1.6;
+
+}
+
+
+.mode-option.active {
+
+  background:
+    #eef2ff;
+
+  border-color:
+    #3157d6;
+
+  box-shadow:
+    0 0 0 3px
+    rgba(49, 87, 214, .1);
+
+}
+
+
+.mode-option.active strong {
+
+  color:
+    #3157d6;
 
 }
 
@@ -1494,6 +1948,7 @@ button:disabled {
   }
 
 
+  .mode-selector,
   .form-grid,
   .form-grid-three,
   .form-grid-four {
