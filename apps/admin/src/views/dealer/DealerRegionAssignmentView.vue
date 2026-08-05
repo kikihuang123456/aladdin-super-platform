@@ -11,6 +11,11 @@ import type {
 } from '../../types/dealer-region'
 
 
+import type {
+  DealerRegionReassignmentRequest,
+} from '../../types/dealer-region-reassignment'
+
+
 import {
   useDealerRegionStore,
 } from '../../stores/dealer-region'
@@ -29,6 +34,11 @@ import {
 import {
   useDealerRegionBatchAssignmentStore,
 } from '../../stores/dealer-region-batch-assignment'
+
+
+import {
+  useDealerRegionReassignmentStore,
+} from '../../stores/dealer-region-reassignment'
 
 
 import DealerRegionAssignmentTable
@@ -55,6 +65,14 @@ import DealerRegionBatchAssignmentResult
 from '../../components/dealer/DealerRegionBatchAssignmentResult.vue'
 
 
+import DealerRegionReassignmentDialog
+from '../../components/dealer/DealerRegionReassignmentDialog.vue'
+
+
+import DealerRegionReassignmentResult
+from '../../components/dealer/DealerRegionReassignmentResult.vue'
+
+
 
 const dealerRegionStore =
   useDealerRegionStore()
@@ -70,6 +88,10 @@ const candidateStore =
 
 const batchAssignmentStore =
   useDealerRegionBatchAssignmentStore()
+
+
+const reassignmentStore =
+  useDealerRegionReassignmentStore()
 
 
 
@@ -93,6 +115,10 @@ const showHistoryDialog =
   ref(false)
 
 
+const showReassignmentDialog =
+  ref(false)
+
+
 const selectedRegion =
   ref<DealerRegion | null>(null)
 
@@ -105,6 +131,10 @@ async function loadRegions(){
 }
 
 
+
+// =================================
+// M05-10 Batch Assignment
+// =================================
 
 async function confirmAssign(
   dealerIds: string[],
@@ -144,9 +174,7 @@ async function confirmAssign(
 
   /*
    * M05-08
-   *
-   * 正式批次指派前，
-   * 再執行一次容量檢查。
+   * 批次指派前再次檢查容量。
    */
 
   const capacityResult =
@@ -189,11 +217,7 @@ async function confirmAssign(
 
   /*
    * M05-10
-   *
-   * 一次批次寫入：
-   *
-   * dealer_region_members
-   * dealer_region_logs
+   * 一次批次寫入指派與紀錄。
    */
 
   const batchResult =
@@ -225,10 +249,7 @@ async function confirmAssign(
 
 
   /*
-   * 完全失敗：
-   *
-   * 保留 Dialog，
-   * 讓管理員查看錯誤並重新操作。
+   * 完全失敗時保留 Dialog。
    */
 
   if(
@@ -244,13 +265,6 @@ async function confirmAssign(
 
   }
 
-
-  /*
-   * 至少一筆成功後：
-   *
-   * 更新區域列表
-   * 更新候選經銷商
-   */
 
   await dealerRegionStore.fetchRegions()
 
@@ -290,6 +304,9 @@ function handleAssign(
   batchAssignmentStore.clearResult()
 
 
+  reassignmentStore.clearResult()
+
+
   selectedRegion.value =
     region
 
@@ -300,6 +317,217 @@ function handleAssign(
 }
 
 
+
+function closeAssignDialog(
+  clearBatchResult = true,
+){
+
+  showAssignDialog.value =
+    false
+
+
+  selectedRegion.value =
+    null
+
+
+  assignmentError.value =
+    ''
+
+
+  capacityRuleStore.clearResult()
+
+
+  if(
+    clearBatchResult
+  ){
+
+    batchAssignmentStore.clearResult()
+
+  }
+
+}
+
+
+
+function clearBatchResult(){
+
+  batchAssignmentStore.clearResult()
+
+
+  successMessage.value =
+    ''
+
+
+  assignmentError.value =
+    ''
+
+}
+
+
+
+// =================================
+// M05-11 Reassignment
+// =================================
+
+function handleReassign(
+  region: DealerRegion,
+){
+
+  successMessage.value =
+    ''
+
+
+  assignmentError.value =
+    ''
+
+
+  capacityRuleStore.clearResult()
+
+
+  reassignmentStore.clearResult()
+
+
+  selectedRegion.value =
+    region
+
+
+  showReassignmentDialog.value =
+    true
+
+}
+
+
+
+async function confirmReassignment(
+  payload:
+    DealerRegionReassignmentRequest,
+){
+
+  successMessage.value =
+    ''
+
+
+  assignmentError.value =
+    ''
+
+
+  const response =
+    await reassignmentStore.reassign(
+      payload,
+    )
+
+
+  if(
+    !response
+  ){
+
+    assignmentError.value =
+      reassignmentStore.error
+      ??
+      '經銷商區域重新指派失敗。'
+
+    return
+
+  }
+
+
+  if(
+    !response.success
+  ){
+
+    assignmentError.value =
+      response.error
+      ??
+      response.message
+
+    /*
+     * 失敗時不關閉 Dialog，
+     * 讓管理員修正後再次操作。
+     */
+
+    return
+
+  }
+
+
+  /*
+   * 重新指派成功後更新：
+   *
+   * 1. 區域列表
+   * 2. 候選經銷商清單
+   *
+   * 歷史紀錄 Dialog 下次開啟時，
+   * 會重新從資料庫載入最新紀錄。
+   */
+
+  await dealerRegionStore.fetchRegions()
+
+
+  await candidateStore.fetchCandidates()
+
+
+  successMessage.value =
+    response.message
+
+
+  closeReassignmentDialog(
+    false,
+  )
+
+}
+
+
+
+function closeReassignmentDialog(
+  clearResult = true,
+){
+
+  showReassignmentDialog.value =
+    false
+
+
+  selectedRegion.value =
+    null
+
+
+  assignmentError.value =
+    ''
+
+
+  capacityRuleStore.clearResult()
+
+
+  if(
+    clearResult
+  ){
+
+    reassignmentStore.clearResult()
+
+  }
+
+}
+
+
+
+function clearReassignmentResult(){
+
+  reassignmentStore.clearResult()
+
+
+  successMessage.value =
+    ''
+
+
+  assignmentError.value =
+    ''
+
+}
+
+
+
+// =================================
+// Detail / History
+// =================================
 
 function handleDetail(
   region: DealerRegion,
@@ -357,65 +585,9 @@ function closeHistoryDialog(){
 
 
 
-function closeAssignDialog(
-  clearBatchResult = true,
-){
-
-  showAssignDialog.value =
-    false
-
-
-  selectedRegion.value =
-    null
-
-
-  assignmentError.value =
-    ''
-
-
-  capacityRuleStore.clearResult()
-
-
-  if(
-    clearBatchResult
-  ){
-
-    batchAssignmentStore.clearResult()
-
-  }
-
-}
-
-
-
-function clearBatchResult(){
-
-  batchAssignmentStore.clearResult()
-
-
-  successMessage.value =
-    ''
-
-
-  assignmentError.value =
-    ''
-
-}
-
-
-
-function handleReassign(
-  region: DealerRegion,
-){
-
-  console.log(
-    'reassign region',
-    region,
-  )
-
-}
-
-
+// =================================
+// Remove
+// =================================
 
 function handleRemove(
   region: DealerRegion,
@@ -460,6 +632,8 @@ onMounted(
         M05-08 Capacity Rules
         ＋
         M05-10 Batch Assignment
+        ＋
+        M05-11 Reassignment
       </p>
 
     </div>
@@ -483,6 +657,8 @@ onMounted(
   </div>
 
 
+  <!-- M05-10 Batch Result -->
+
   <section
     v-if="
       batchAssignmentStore.loading
@@ -495,10 +671,10 @@ onMounted(
         !showAssignDialog
       )
     "
-    class="batch-result-panel"
+    class="result-panel"
   >
 
-    <div class="batch-result-toolbar">
+    <div class="result-toolbar">
 
       <h2>
         批次指派結果
@@ -534,6 +710,62 @@ onMounted(
 
   </section>
 
+
+  <!-- M05-11 Reassignment Result -->
+
+  <section
+    v-if="
+      reassignmentStore.loading
+      ||
+      reassignmentStore.result
+      ||
+      (
+        reassignmentStore.error
+        &&
+        !showReassignmentDialog
+      )
+    "
+    class="result-panel"
+  >
+
+    <div class="result-toolbar">
+
+      <h2>
+        重新指派結果
+      </h2>
+
+
+      <button
+        v-if="
+          !reassignmentStore.loading
+          &&
+          reassignmentStore.result
+        "
+        type="button"
+        @click="clearReassignmentResult"
+      >
+        關閉結果
+      </button>
+
+    </div>
+
+
+    <DealerRegionReassignmentResult
+      :result="
+        reassignmentStore.result
+      "
+      :loading="
+        reassignmentStore.loading
+      "
+      :error="
+        reassignmentStore.error
+      "
+    />
+
+  </section>
+
+
+  <!-- M05-08 Capacity Result -->
 
   <DealerRegionCapacityRuleAlert
     v-if="
@@ -598,6 +830,8 @@ onMounted(
   />
 
 
+  <!-- Batch Assignment Dialog -->
+
   <DealerRegionAssignDialog
     :visible="
       showAssignDialog
@@ -614,6 +848,26 @@ onMounted(
   />
 
 
+  <!-- Reassignment Dialog -->
+
+  <DealerRegionReassignmentDialog
+    :visible="
+      showReassignmentDialog
+    "
+    :region="
+      selectedRegion
+    "
+    @close="
+      closeReassignmentDialog()
+    "
+    @confirm="
+      confirmReassignment
+    "
+  />
+
+
+  <!-- Detail Dialog -->
+
   <DealerRegionDetailDialog
     v-if="showDetailDialog"
     :region="
@@ -624,6 +878,8 @@ onMounted(
     "
   />
 
+
+  <!-- History Dialog -->
 
   <DealerRegionHistoryDialog
     v-if="showHistoryDialog"
@@ -755,7 +1011,7 @@ onMounted(
 }
 
 
-.batch-result-panel {
+.result-panel {
 
   display:
     flex;
@@ -781,7 +1037,7 @@ onMounted(
 }
 
 
-.batch-result-toolbar {
+.result-toolbar {
 
   display:
     flex;
@@ -798,7 +1054,7 @@ onMounted(
 }
 
 
-.batch-result-toolbar h2 {
+.result-toolbar h2 {
 
   margin:
     0;
@@ -812,7 +1068,7 @@ onMounted(
 }
 
 
-.batch-result-toolbar button {
+.result-toolbar button {
 
   padding:
     8px 14px;
