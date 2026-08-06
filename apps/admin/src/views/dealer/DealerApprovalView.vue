@@ -14,12 +14,15 @@ import {
   useDealerStore,
 } from '../../stores/dealer'
 
-
+import {
+  useAuthStore,
+} from '../../stores/auth'
 
 const dealerStore =
   useDealerStore()
 
-
+const authStore =
+  useAuthStore()
 
 const loading =
   ref(false)
@@ -66,19 +69,40 @@ async function handleApprove(
   dealer:any,
 ){
 
-  const result =
-    await dealerStore.approveDealer({
+  const approverId =
+  authStore.user?.id
+  ??
+  null
 
-      dealerId:
-        dealer.id,
 
-      status:
-        'approved',
+if(
+  !approverId
+){
 
-      remark:
-        '審核通過',
+  dealerStore.error =
+    '無法取得目前登入管理員 ID，請重新登入後再審核。'
 
-    })
+  return
+
+}
+
+
+const result =
+  await dealerStore.approveDealer({
+
+    dealerId:
+      dealer.id,
+
+    status:
+      'approved',
+
+    approvedBy:
+      approverId,
+
+    remark:
+      '審核通過',
+
+  })
 
 
   if(result){
@@ -96,20 +120,40 @@ async function handleReject(
   dealer:any,
 ){
 
-  const result =
-    await dealerStore.approveDealer({
+  const approverId =
+  authStore.user?.id
+  ??
+  null
 
-      dealerId:
-        dealer.id,
 
-      status:
-        'rejected',
+if(
+  !approverId
+){
 
-      remark:
-        '審核拒絕',
+  dealerStore.error =
+    '無法取得目前登入管理員 ID，請重新登入後再審核。'
 
-    })
+  return
 
+}
+
+
+const result =
+  await dealerStore.approveDealer({
+
+    dealerId:
+      dealer.id,
+
+    status:
+      'rejected',
+
+    approvedBy:
+      approverId,
+
+    remark:
+      '審核拒絕',
+
+  })
 
   if(result){
 
