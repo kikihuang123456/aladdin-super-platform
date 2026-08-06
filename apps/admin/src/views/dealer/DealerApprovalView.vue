@@ -39,7 +39,10 @@ const authStore =
 const loading =
   ref(false)
 
-
+const submittingDealerId =
+  ref<string | null>(
+    null,
+  )
 
 async function loadPendingDealers(){
 
@@ -90,46 +93,85 @@ async function handleApprove(
   dealer: Dealer,
 ): Promise<void> {
 
+  if(
+    submittingDealerId.value
+  ){
+
+    return
+
+  }
+
+
+  const confirmed =
+    window.confirm(
+      `確定要通過經銷商「${dealer.name}」的申請嗎？\n\n通過後帳號將立即啟用。`,
+    )
+
+
+  if(
+    !confirmed
+  ){
+
+    return
+
+  }
+
+
   const approverId =
-  authStore.user?.id
-  ??
-  null
+    authStore.user?.id
+    ??
+    null
 
 
-if(
-  !approverId
-){
+  if(
+    !approverId
+  ){
 
-  dealerStore.error =
-    '無法取得目前登入管理員 ID，請重新登入後再審核。'
+    dealerStore.error =
+      '無法取得目前登入管理員 ID，請重新登入後再審核。'
 
-  return
+    return
 
-}
-
-
-const result =
-  await dealerStore.approveDealer({
-
-    dealerId:
-      dealer.id,
-
-    status:
-      'approved',
-
-    approvedBy:
-      approverId,
-
-    remark:
-      '審核通過',
-
-  })
+  }
 
 
-  if(result){
+  submittingDealerId.value =
+    dealer.id
 
-    await dealerStore
-      .fetchPendingDealers()
+
+  try {
+
+    const result =
+      await dealerStore.approveDealer({
+
+        dealerId:
+          dealer.id,
+
+        status:
+          'approved',
+
+        approvedBy:
+          approverId,
+
+        remark:
+          '審核通過',
+
+      })
+
+
+    if(
+      result
+    ){
+
+      await dealerStore
+        .fetchPendingDealers()
+
+    }
+
+  } finally {
+
+    submittingDealerId.value =
+      null
 
   }
 
@@ -141,45 +183,122 @@ async function handleReject(
   dealer: Dealer,
 ): Promise<void> {
 
+  if(
+    submittingDealerId.value
+  ){
+
+    return
+
+  }
+
+
+  const rejectReason =
+    window.prompt(
+      `請輸入拒絕經銷商「${dealer.name}」的原因：`,
+      '',
+    )
+
+
+  /*
+   * 使用者按下取消。
+   */
+
+  if(
+    rejectReason === null
+  ){
+
+    return
+
+  }
+
+
+  const normalizedReason =
+    rejectReason.trim()
+
+
+  if(
+    !normalizedReason
+  ){
+
+    window.alert(
+      '拒絕原因不可空白。',
+    )
+
+    return
+
+  }
+
+
+  const confirmed =
+    window.confirm(
+      `確定拒絕此經銷商申請嗎？\n\n拒絕原因：${normalizedReason}`,
+    )
+
+
+  if(
+    !confirmed
+  ){
+
+    return
+
+  }
+
+
   const approverId =
-  authStore.user?.id
-  ??
-  null
+    authStore.user?.id
+    ??
+    null
 
 
-if(
-  !approverId
-){
+  if(
+    !approverId
+  ){
 
-  dealerStore.error =
-    '無法取得目前登入管理員 ID，請重新登入後再審核。'
+    dealerStore.error =
+      '無法取得目前登入管理員 ID，請重新登入後再審核。'
 
-  return
+    return
 
-}
+  }
 
 
-const result =
-  await dealerStore.approveDealer({
+  submittingDealerId.value =
+    dealer.id
 
-    dealerId:
-      dealer.id,
 
-    status:
-      'rejected',
+  try {
 
-    approvedBy:
-      approverId,
+    const result =
+      await dealerStore.approveDealer({
 
-    remark:
-      '審核拒絕',
+        dealerId:
+          dealer.id,
 
-  })
+        status:
+          'rejected',
 
-  if(result){
+        approvedBy:
+          approverId,
 
-    await dealerStore
-      .fetchPendingDealers()
+        remark:
+          `審核拒絕：${normalizedReason}`,
+
+      })
+
+
+    if(
+      result
+    ){
+
+      await dealerStore
+        .fetchPendingDealers()
+
+    }
+
+  } finally {
+
+    submittingDealerId.value =
+      null
 
   }
 
