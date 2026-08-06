@@ -5,11 +5,16 @@ import type {
 } from '../../types/dealer'
 
 
-defineProps<{
+const props =
+  defineProps<{
 
-  dealers: Dealer[]
+    dealers:
+      Dealer[]
 
-}>()
+    submittingDealerId?:
+      string | null
+
+  }>()
 
 
 const emit =
@@ -64,7 +69,7 @@ function formatDate(
 
 
   <div
-    v-if="dealers.length === 0"
+   v-if="props.dealers.length === 0"
     class="empty"
   >
 
@@ -130,7 +135,7 @@ function formatDate(
 
 
       <tr
-        v-for="dealer in dealers"
+        v-for="dealer in props.dealers"
         :key="dealer.id"
       >
 
@@ -207,37 +212,68 @@ function formatDate(
 
             </button>
 
+<button
+  class="view"
+  :disabled="
+    Boolean(
+      props.submittingDealerId,
+    )
+  "
+  @click="
+    emit(
+      'view',
+      dealer,
+    )
+  "
+>
+  查看
+</button>
+
+            <button
+  class="approve"
+  :disabled="
+    Boolean(
+      props.submittingDealerId,
+    )
+  "
+  @click="
+    emit(
+      'approve',
+      dealer,
+    )
+  "
+>
+  {{
+    props.submittingDealerId ===
+      dealer.id
+      ? '處理中…'
+      : '通過'
+  }}
+</button>
+
 
 
             <button
-              class="approve"
-              @click="
-                emit(
-                  'approve',
-                  dealer,
-                )
-              "
-            >
-
-              通過
-
-            </button>
-
-
-
-            <button
-              class="reject"
-              @click="
-                emit(
-                  'reject',
-                  dealer,
-                )
-              "
-            >
-
-              拒絕
-
-            </button>
+  class="reject"
+  :disabled="
+    Boolean(
+      props.submittingDealerId,
+    )
+  "
+  @click="
+    emit(
+      'reject',
+      dealer,
+    )
+  "
+>
+  {{
+    props.submittingDealerId ===
+      dealer.id
+      ? '處理中…'
+      : '拒絕'
+  }}
+</button>
 
 
           </div>
@@ -371,5 +407,9 @@ button{
 
 }
 
-
+.actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  pointer-events: none;
+}
 </style>

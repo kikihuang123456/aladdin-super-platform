@@ -415,7 +415,9 @@ onMounted(
       :dealers="
         dealerStore.dealers
       "
-
+        :submitting-dealer-id="
+    submittingDealerId
+  "
       @view="
         handleView
       "
