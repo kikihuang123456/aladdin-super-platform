@@ -1,9 +1,10 @@
 export interface NavigationItem {
   label: string
-  path: string
+  path?: string
   permission?: string
   roles?: string[]
   disabled?: boolean
+  children?: NavigationItem[]
 }
 
 export const adminNavigation: NavigationItem[] = [
@@ -23,94 +24,92 @@ export const adminNavigation: NavigationItem[] = [
     permission: 'merchant.view',
   },
   {
-  label: '商家商品管理',
-  path: '/merchants/products',
-  permission: 'merchant.product.view',
-},
+    label: '商家商品管理',
+    path: '/merchants/products',
+    permission: 'merchant.product.view',
+  },
+
+  // ========================================
+  // 經銷商管理
+  // ========================================
   {
     label: '經銷商管理',
     path: '/dealers',
     permission: 'dealer.view',
+    children: [
+      {
+        label: '經銷商列表',
+        path: '/dealers',
+        permission: 'dealer.view',
+      },
+      {
+        label: '區域與指派',
+        permission: 'dealer.view',
+        children: [
+          {
+            label: '經銷商區域管理',
+            path: '/dealer/region-assignment',
+            permission: 'dealer.view',
+          },
+          {
+            label: '經銷商區域容量管理',
+            path: '/dealer/region-capacity',
+            permission: 'dealer.view',
+          },
+        ],
+      },
+    ],
   },
+
   {
     label: '商城管理',
     path: '/mall',
     permission: 'mall.view',
   },
   {
-  label:'訂單管理',
-  path:'/order',
-},
-{
-  label:
-    '財務中心',
+    label: '訂單管理',
+    path: '/order',
+  },
 
-  path:
-    '/finance',
+  // ========================================
+  // 財務中心
+  // ========================================
+  {
+    label: '財務中心',
+    path: '/finance',
+    permission: 'finance.view',
+  },
+  {
+    label: '財務交易',
+    path: '/finance/transactions',
+    permission: 'finance.transaction.view',
+  },
+  {
+    label: '錢包管理',
+    path: '/finance/wallets',
+    permission: 'finance.wallet.view',
+  },
+  {
+    label: '提款管理',
+    path: '/finance/withdraws',
+    permission: 'finance.withdraw.view',
+  },
+  {
+    label: '結算管理',
+    path: '/finance/settlements',
+    permission: 'finance.settlement.view',
+  },
+  {
+    label: '財務報表',
+    path: '/finance/reports',
+    permission: 'finance.report.view',
+  },
+  {
+    label: '財務稽核',
+    path: '/finance/audit-logs',
+    permission: 'finance.audit.view',
+  },
 
-  permission:
-    'finance.view',
-},
-{
-  label:
-    '財務交易',
-
-  path:
-    '/finance/transactions',
-
-  permission:
-    'finance.transaction.view',
-},
-{
-  label:
-    '錢包管理',
-
-  path:
-    '/finance/wallets',
-
-  permission:
-    'finance.wallet.view',
-},
-{
-  label:
-    '提款管理',
-
-  path:
-    '/finance/withdraws',
-
-  permission:
-    'finance.withdraw.view',
-},
-{
-  label:
-    '結算管理',
-
-  path:
-    '/finance/settlements',
-
-  permission:
-    'finance.settlement.view',
-},
-{
-  label:
-    '財務報表',
-
-  path:
-    '/finance/reports',
-
-  permission:
-    'finance.report.view',
-},
-{
-  label:
-    '財務稽核',
-
-  path:
-    '/finance/audit-logs',
-
-  permission:
-    'finance.audit.view',
-},
   {
     label: '文旅管理',
     path: '/travel',
@@ -127,5 +126,4 @@ export const adminNavigation: NavigationItem[] = [
     permission: 'system.view',
     disabled: true,
   },
-
 ]

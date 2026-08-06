@@ -9,10 +9,130 @@
         <nav class="navigation">
           <template
             v-for="item in visibleNavigation"
-            :key="item.path"
+            :key="item.path ?? item.label"
           >
+            <div
+              v-if="
+                item.children &&
+                item.children.length > 0
+              "
+              class="navigation-group"
+            >
+              <RouterLink
+                v-if="
+                  !item.disabled &&
+                  item.path
+                "
+                :to="item.path"
+                class="navigation-group__title"
+              >
+                {{ item.label }}
+              </RouterLink>
+
+              <div
+                v-else
+                class="navigation-group__title"
+              >
+                {{ item.label }}
+              </div>
+
+              <div class="navigation-group__children">
+                <template
+                  v-for="child in item.children"
+                  :key="child.path ?? child.label"
+                >
+                  <div
+                    v-if="
+                      child.children &&
+                      child.children.length > 0
+                    "
+                    class="navigation-subgroup"
+                  >
+                    <div class="navigation-subgroup__title">
+                      {{ child.label }}
+                    </div>
+
+                    <div class="navigation-subgroup__children">
+                      <template
+                        v-for="grandchild in child.children"
+                        :key="
+                          grandchild.path ??
+                          grandchild.label
+                        "
+                      >
+                        <RouterLink
+                          v-if="
+                            !grandchild.disabled &&
+                            grandchild.path
+                          "
+                          :to="grandchild.path"
+                          class="
+                            navigation-group__link
+                            navigation-group__link--nested
+                          "
+                        >
+                          {{ grandchild.label }}
+                        </RouterLink>
+
+                        <button
+                          v-else
+                          class="
+                            navigation__disabled
+                            navigation-group__link
+                            navigation-group__link--nested
+                          "
+                          type="button"
+                          disabled
+                        >
+                          <span>
+                            {{ grandchild.label }}
+                          </span>
+
+                          <small>
+                            建置中
+                          </small>
+                        </button>
+                      </template>
+                    </div>
+                  </div>
+
+                  <RouterLink
+                    v-else-if="
+                      !child.disabled &&
+                      child.path
+                    "
+                    :to="child.path"
+                    class="navigation-group__link"
+                  >
+                    {{ child.label }}
+                  </RouterLink>
+
+                  <button
+                    v-else
+                    class="
+                      navigation__disabled
+                      navigation-group__link
+                    "
+                    type="button"
+                    disabled
+                  >
+                    <span>
+                      {{ child.label }}
+                    </span>
+
+                    <small>
+                      建置中
+                    </small>
+                  </button>
+                </template>
+              </div>
+            </div>
+
             <RouterLink
-              v-if="!item.disabled"
+              v-else-if="
+                !item.disabled &&
+                item.path
+              "
               :to="item.path"
             >
               {{ item.label }}
@@ -74,29 +194,72 @@ import {
 const permissionStore =
   usePermissionStore()
 
+function isNavigationAllowed(
+  item: NavigationItem,
+): boolean {
+  const roleAllowed =
+    !item.roles ||
+    item.roles.length === 0 ||
+    permissionStore.hasAnyRole(
+      item.roles,
+    )
+
+  const permissionAllowed =
+    !item.permission ||
+    permissionStore.hasPermission(
+      item.permission,
+    )
+
+  return (
+    roleAllowed &&
+    permissionAllowed
+  )
+}
+
+function filterNavigationItem(
+  item: NavigationItem,
+): NavigationItem | null {
+  if (!isNavigationAllowed(item)) {
+    return null
+  }
+
+  if (
+    !item.children ||
+    item.children.length === 0
+  ) {
+    return item
+  }
+
+  const children =
+    item.children
+      .map(filterNavigationItem)
+      .filter(
+        (
+          child,
+        ): child is NavigationItem =>
+          child !== null,
+      )
+
+  if (children.length === 0) {
+    return null
+  }
+
+  return {
+    ...item,
+    children,
+  }
+}
+
 const visibleNavigation =
   computed<NavigationItem[]>(() => {
-    return adminNavigation.filter(
-      (item) => {
-        const roleAllowed =
-          !item.roles ||
-          item.roles.length === 0 ||
-          permissionStore.hasAnyRole(
-            item.roles,
-          )
-
-        const permissionAllowed =
-          !item.permission ||
-          permissionStore.hasPermission(
-            item.permission,
-          )
-
-        return (
-          roleAllowed &&
-          permissionAllowed
-        )
-      },
-    )
+    return adminNavigation
+      .map(filterNavigationItem)
+      .filter(
+        (
+          item,
+        ): item is NavigationItem =>
+          item !== null,
+      )
   })
 
 onMounted(async () => {
@@ -215,6 +378,84 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
+.navigation-group {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.navigation-group__title {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  box-sizing: border-box;
+  align-items: center;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.navigation-group__title:hover {
+  background: #1f2937;
+}
+
+.navigation-group__title.router-link-active {
+  background: #3157d6;
+}
+
+.navigation-group__children {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 10px;
+}
+
+.navigation-subgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.navigation-subgroup__title {
+  padding: 8px 14px 6px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.navigation-subgroup__children {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 10px;
+}
+
+.navigation-group__link {
+  min-height: 40px !important;
+  padding: 10px 14px 10px 18px !important;
+  font-size: 14px;
+}
+
+.navigation-group__link::before {
+  content: '•';
+  margin-right: 8px;
+  color: #64748b;
+}
+
+.navigation-group__link--nested {
+  padding-left: 18px !important;
+  font-size: 13px;
+}
+
+.navigation-group__link.router-link-active::before {
+  color: #ffffff;
+}
+
 .content {
   width: 0;
   min-width: 0;
@@ -231,31 +472,26 @@ onMounted(async () => {
   box-sizing: border-box;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
   background: #ffffff;
 }
 
 .header h2 {
   margin: 0;
   color: #111827;
-  font-size: 26px;
-  font-weight: 800;
+  font-size: 24px;
 }
 
 .page {
-  min-width: 0;
-  min-height: calc(100vh - 98px);
   padding: 32px;
   box-sizing: border-box;
-  background: #f5f7fb;
 }
 
 .sidebar__inner::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 .sidebar__inner::-webkit-scrollbar-track {
-  background: transparent;
+  background: #111827;
 }
 
 .sidebar__inner::-webkit-scrollbar-thumb {
@@ -269,72 +505,30 @@ onMounted(async () => {
 
 @media (max-width: 900px) {
   .layout {
-    min-height: 100vh;
-    flex-direction: column;
+    display: block;
   }
 
   .sidebar {
-    position: relative;
     width: 100%;
     min-width: 0;
-    flex: none;
-    align-self: auto;
   }
 
   .sidebar__inner {
     position: relative;
-    top: auto;
-    width: 100%;
     height: auto;
     min-height: 0;
-    padding: 20px;
-    overflow: visible;
-  }
-
-  .logo {
-    margin-bottom: 20px;
-  }
-
-  .navigation {
-    display: grid;
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
   }
 
   .content {
     width: 100%;
-    min-height: 0;
   }
 
   .header {
-    min-height: 80px;
-    padding: 18px 20px;
-  }
-
-  .page {
-    min-height: calc(100vh - 80px);
     padding: 20px;
   }
-}
-
-@media (max-width: 680px) {
-  .header {
-    align-items: stretch;
-    flex-direction: column;
-  }
-}
-
-@media (max-width: 560px) {
-  .navigation {
-    grid-template-columns: 1fr;
-  }
-
-  .header h2 {
-    font-size: 21px;
-  }
 
   .page {
-    padding: 16px;
+    padding: 20px;
   }
 }
 </style>
