@@ -488,6 +488,143 @@
           </div>
         </article>
       </section>
+
+      <section class="history-panel">
+        <div class="history-panel__header">
+          <div>
+            <p class="history-panel__eyebrow">
+              Relation History
+            </p>
+
+            <h2>
+              團隊關係歷史
+            </h2>
+
+            <p>
+              顯示歷次上級指派、變更與解除紀錄。
+            </p>
+          </div>
+
+          <span class="history-panel__count">
+            共 {{ historyStore.total }} 筆
+          </span>
+        </div>
+
+        <div
+          v-if="historyStore.error"
+          class="relation-feedback relation-feedback--error"
+        >
+          {{ historyStore.error }}
+        </div>
+
+        <div
+          v-else-if="historyStore.isLoading"
+          class="history-state"
+        >
+          正在載入團隊關係歷史...
+        </div>
+
+        <div
+          v-else-if="historyStore.history.length === 0"
+          class="history-state"
+        >
+          此經銷商目前沒有團隊關係歷史。
+        </div>
+
+        <div
+          v-else
+          class="history-table-wrapper"
+        >
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>狀態</th>
+                <th>上級經銷商</th>
+                <th>開始時間</th>
+                <th>結束時間</th>
+                <th>操作人</th>
+                <th>操作備註</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr
+                v-for="item in historyStore.history"
+                :key="item.id"
+              >
+                <td>
+                  <span
+                    class="relation-status"
+                    :class="
+                      item.status === 'active'
+                        ? 'relation-status--active'
+                        : 'relation-status--terminated'
+                    "
+                  >
+                    {{
+                      formatRelationStatus(
+                        item.status,
+                      )
+                    }}
+                  </span>
+                </td>
+
+                <td>
+                  <strong>
+                    {{
+                      item.parentDealerName
+                      ??
+                      '未設定上級'
+                    }}
+                  </strong>
+
+                  <small>
+                    {{
+                      item.parentDealerNo
+                      ??
+                      '—'
+                    }}
+                  </small>
+                </td>
+
+                <td>
+                  {{
+                    formatDate(
+                      item.joinedAt,
+                    )
+                  }}
+                </td>
+
+                <td>
+                  {{
+                    formatDate(
+                      item.endedAt,
+                    )
+                  }}
+                </td>
+
+                <td>
+                  <strong>
+                    {{ item.operatorName }}
+                  </strong>
+
+                  <small>
+                    {{
+                      item.operatorEmail
+                      ??
+                      '—'
+                    }}
+                  </small>
+                </td>
+
+                <td class="history-table__remark">
+                  {{ item.remark ?? '—' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </template>
 
     <section
@@ -520,6 +657,10 @@ import {
 } from '../../stores/dealer-team-relation'
 
 import {
+  useDealerTeamRelationHistoryStore,
+} from '../../stores/dealer-team-relation-history'
+
+import {
   useAuthStore,
 } from '../../stores/auth'
 
@@ -534,6 +675,10 @@ const dealerStore =
 
 const relationStore =
   useDealerTeamRelationStore()
+
+
+const historyStore =
+  useDealerTeamRelationHistoryStore()
 
 
 const authStore =
@@ -764,6 +909,10 @@ Promise<void> {
       normalizedDealerId,
     ),
 
+    historyStore.fetchHistory(
+      normalizedDealerId,
+    ),
+
     dealerStore.fetchDealers(),
   ])
 
@@ -780,8 +929,32 @@ Promise<void> {
 async function handleSearch():
 Promise<void> {
 
-  await performanceStore.fetchPerformance(
-    dealerId.value,
+  historyStore.clearHistory()
+
+
+  const success =
+    await performanceStore.fetchPerformance(
+      dealerId.value,
+    )
+
+
+  if (
+    !success
+    ||
+    !performanceStore.dealer?.id
+  ) {
+
+    return
+
+  }
+
+
+  dealerId.value =
+    performanceStore.dealer.id
+
+
+  await historyStore.fetchHistory(
+    performanceStore.dealer.id,
   )
 
 }
@@ -798,6 +971,33 @@ function formatCurrency(
       maximumFractionDigits: 2,
     },
   ).format(value)
+
+}
+
+
+function formatRelationStatus(
+  status: string,
+): string {
+
+  if (
+    status === 'active'
+  ) {
+
+    return '目前有效'
+
+  }
+
+
+  if (
+    status === 'terminated'
+  ) {
+
+    return '已終止'
+
+  }
+
+
+  return '未啟用'
 
 }
 
@@ -1287,6 +1487,122 @@ onBeforeUnmount(() => {
 
   .relation-actions button {
     width: 100%;
+  }
+}
+
+
+.history-panel {
+  padding: 24px;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.history-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.history-panel__header h2 {
+  margin: 0;
+}
+
+.history-panel__header p {
+  margin: 8px 0 0;
+  color: #64748b;
+}
+
+.history-panel__eyebrow {
+  margin: 0 0 7px !important;
+  color: #3157d6 !important;
+  font-weight: 700;
+}
+
+.history-panel__count {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3157d6;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.history-state {
+  padding: 34px 16px;
+  color: #64748b;
+  text-align: center;
+}
+
+.history-table-wrapper {
+  margin-top: 22px;
+  overflow-x: auto;
+}
+
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.history-table th,
+.history-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  vertical-align: top;
+}
+
+.history-table th {
+  color: #475569;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.history-table td {
+  color: #334155;
+}
+
+.history-table td strong,
+.history-table td small {
+  display: block;
+}
+
+.history-table td small {
+  margin-top: 5px;
+  color: #64748b;
+}
+
+.history-table__remark {
+  min-width: 220px;
+  white-space: pre-line;
+}
+
+.relation-status {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.relation-status--active {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.relation-status--terminated {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+@media (
+  max-width: 680px
+) {
+  .history-panel__header {
+    flex-direction: column;
   }
 }
 

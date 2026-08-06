@@ -688,3 +688,41 @@ export interface DealerTeamRelationMutationResponse {
   endedAt?: string
   error?: string
 }
+
+// =================================
+// Dealer Team Relation History
+// =================================
+
+export interface DealerTeamRelationHistoryItem {
+  id: string
+  dealerId: string
+  dealerNo: string
+  dealerName: string
+  parentDealerId?: string | null
+  parentDealerNo?: string | null
+  parentDealerName?: string | null
+  status: DealerTeamRelationStatus
+  joinedAt: string
+  endedAt?: string | null
+  createdBy?: string | null
+  operatorName: string
+  operatorEmail?: string | null
+  remark?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+
+export interface DealerTeamRelationHistoryData {
+  dealerId: string
+  total: number
+  history: DealerTeamRelationHistoryItem[]
+}
+
+
+export interface DealerTeamRelationHistoryResponse {
+  success: boolean
+  data?: DealerTeamRelationHistoryData
+  message: string
+  error?: string
+}

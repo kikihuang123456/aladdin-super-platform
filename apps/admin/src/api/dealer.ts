@@ -33,6 +33,8 @@ import type {
   DealerTeamRelationMutationResponse,
   DealerTeamRelationRecord,
   DealerTeamRelationStatus,
+  DealerTeamRelationHistoryItem,
+  DealerTeamRelationHistoryResponse,
 } from '../types/dealer'
 
 
@@ -4484,6 +4486,370 @@ export async function unassignDealerTeamParent(
         normalizeApiError(
           errorValue,
           '解除經銷商上級時發生未知錯誤。',
+        ),
+
+    }
+
+  }
+
+}
+
+
+// =================================
+// Dealer Team Relation History
+// =================================
+
+interface DealerTeamRelationHistoryRpcItem {
+  id?: unknown
+  dealer_id?: unknown
+  dealerId?: unknown
+  dealer_no?: unknown
+  dealerNo?: unknown
+  dealer_name?: unknown
+  dealerName?: unknown
+  parent_dealer_id?: unknown
+  parentDealerId?: unknown
+  parent_dealer_no?: unknown
+  parentDealerNo?: unknown
+  parent_dealer_name?: unknown
+  parentDealerName?: unknown
+  status?: unknown
+  joined_at?: unknown
+  joinedAt?: unknown
+  ended_at?: unknown
+  endedAt?: unknown
+  created_by?: unknown
+  createdBy?: unknown
+  operator_name?: unknown
+  operatorName?: unknown
+  operator_email?: unknown
+  operatorEmail?: unknown
+  remark?: unknown
+  created_at?: unknown
+  createdAt?: unknown
+  updated_at?: unknown
+  updatedAt?: unknown
+}
+
+
+interface DealerTeamRelationHistoryRpcResponse {
+  success?: unknown
+  dealer_id?: unknown
+  dealerId?: unknown
+  total?: unknown
+  history?: unknown
+  message?: unknown
+}
+
+
+function mapDealerTeamRelationHistoryItem(
+  value: unknown,
+): DealerTeamRelationHistoryItem | null {
+
+  if (
+    !value
+    ||
+    typeof value !== 'object'
+  ) {
+
+    return null
+
+  }
+
+
+  const row =
+    value as DealerTeamRelationHistoryRpcItem
+
+
+  const id =
+    normalizeDealerTeamRelationString(
+      row.id,
+    )
+
+  const dealerId =
+    normalizeDealerTeamRelationString(
+      row.dealer_id
+      ??
+      row.dealerId,
+    )
+
+  const dealerNo =
+    normalizeDealerTeamRelationString(
+      row.dealer_no
+      ??
+      row.dealerNo,
+    )
+
+  const dealerName =
+    normalizeDealerTeamRelationString(
+      row.dealer_name
+      ??
+      row.dealerName,
+    )
+
+  const joinedAt =
+    normalizeDealerTeamRelationString(
+      row.joined_at
+      ??
+      row.joinedAt,
+    )
+
+  const operatorName =
+    normalizeDealerTeamRelationString(
+      row.operator_name
+      ??
+      row.operatorName,
+    )
+    ||
+    '系統／歷史資料'
+
+  const createdAt =
+    normalizeDealerTeamRelationString(
+      row.created_at
+      ??
+      row.createdAt,
+    )
+
+  const updatedAt =
+    normalizeDealerTeamRelationString(
+      row.updated_at
+      ??
+      row.updatedAt,
+    )
+
+
+  if (
+    !id
+    ||
+    !dealerId
+  ) {
+
+    return null
+
+  }
+
+
+  return {
+
+    id,
+
+    dealerId,
+
+    dealerNo,
+
+    dealerName,
+
+    parentDealerId:
+      normalizeDealerTeamRelationNullableString(
+        row.parent_dealer_id
+        ??
+        row.parentDealerId,
+      ),
+
+    parentDealerNo:
+      normalizeDealerTeamRelationNullableString(
+        row.parent_dealer_no
+        ??
+        row.parentDealerNo,
+      ),
+
+    parentDealerName:
+      normalizeDealerTeamRelationNullableString(
+        row.parent_dealer_name
+        ??
+        row.parentDealerName,
+      ),
+
+    status:
+      normalizeDealerTeamRelationStatus(
+        row.status,
+      ),
+
+    joinedAt,
+
+    endedAt:
+      normalizeDealerTeamRelationNullableString(
+        row.ended_at
+        ??
+        row.endedAt,
+      ),
+
+    createdBy:
+      normalizeDealerTeamRelationNullableString(
+        row.created_by
+        ??
+        row.createdBy,
+      ),
+
+    operatorName,
+
+    operatorEmail:
+      normalizeDealerTeamRelationNullableString(
+        row.operator_email
+        ??
+        row.operatorEmail,
+      ),
+
+    remark:
+      normalizeDealerTeamRelationNullableString(
+        row.remark,
+      ),
+
+    createdAt,
+
+    updatedAt,
+
+  }
+
+}
+
+
+export async function getDealerTeamRelationHistory(
+  dealerId: string,
+  limit = 50,
+): Promise<DealerTeamRelationHistoryResponse> {
+
+  const normalizedDealerId =
+    dealerId.trim()
+
+
+  if (
+    !normalizedDealerId
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        '經銷商 ID 不可空白。',
+
+      error:
+        '經銷商 ID 不可空白。',
+
+    }
+
+  }
+
+
+  const normalizedLimit =
+    Number.isInteger(
+      limit,
+    )
+    &&
+    limit > 0
+      ? Math.min(
+          limit,
+          200,
+        )
+      : 50
+
+
+  try {
+
+    const {
+      data,
+      error,
+    } =
+      await supabase.rpc(
+        'get_dealer_team_relation_history',
+        {
+          p_dealer_id:
+            normalizedDealerId,
+
+          p_limit:
+            normalizedLimit,
+        },
+      )
+
+
+    if (
+      error
+    ) {
+
+      throw error
+
+    }
+
+
+    const result =
+      data
+      &&
+      typeof data === 'object'
+        ? data as DealerTeamRelationHistoryRpcResponse
+        : {}
+
+
+    const historySource =
+      Array.isArray(
+        result.history,
+      )
+        ? result.history
+        : []
+
+
+    const history =
+      historySource
+        .map(
+          mapDealerTeamRelationHistoryItem,
+        )
+        .filter(
+          (
+            item,
+          ): item is DealerTeamRelationHistoryItem =>
+            item !== null,
+        )
+
+
+    return {
+
+      success:
+        result.success === true,
+
+      data: {
+
+        dealerId:
+          normalizeDealerTeamRelationString(
+            result.dealer_id
+            ??
+            result.dealerId,
+          )
+          ||
+          normalizedDealerId,
+
+        total:
+          normalizeDealerTeamNumber(
+            result.total,
+          ),
+
+        history,
+
+      },
+
+      message:
+        typeof result.message === 'string'
+          ? result.message
+          : '經銷商團隊關係歷史載入成功。',
+
+    }
+
+  } catch (
+    errorValue
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        '經銷商團隊關係歷史載入失敗。',
+
+      error:
+        normalizeApiError(
+          errorValue,
+          '取得經銷商團隊關係歷史時發生未知錯誤。',
         ),
 
     }
