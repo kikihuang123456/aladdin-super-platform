@@ -29,6 +29,10 @@ import type {
   DealerStatus,
   DealerStatusUpdateInput,
   DealerTeamPerformanceResponse,
+  DealerTeamRelationMutationInput,
+  DealerTeamRelationMutationResponse,
+  DealerTeamRelationRecord,
+  DealerTeamRelationStatus,
 } from '../types/dealer'
 
 
@@ -3799,3 +3803,608 @@ export async function getDealerTeamPerformance(
   }
 
 }
+
+
+// =================================
+// Dealer Team Relation RPC
+// =================================
+
+interface DealerTeamRelationRpcRow {
+  id?: unknown
+  dealer_id?: unknown
+  dealerId?: unknown
+  parent_dealer_id?: unknown
+  parentDealerId?: unknown
+  status?: unknown
+  joined_at?: unknown
+  joinedAt?: unknown
+  ended_at?: unknown
+  endedAt?: unknown
+  created_by?: unknown
+  createdBy?: unknown
+  remark?: unknown
+  created_at?: unknown
+  createdAt?: unknown
+  updated_at?: unknown
+  updatedAt?: unknown
+}
+
+
+interface DealerTeamRelationRpcResponse {
+  success?: unknown
+  message?: unknown
+  relation?: unknown
+  previous_relation?: unknown
+  previousRelation?: unknown
+  relation_id?: unknown
+  relationId?: unknown
+  dealer_id?: unknown
+  dealerId?: unknown
+  previous_parent_dealer_id?: unknown
+  previousParentDealerId?: unknown
+  ended_at?: unknown
+  endedAt?: unknown
+}
+
+
+function normalizeDealerTeamRelationString(
+  value: unknown,
+): string {
+
+  return typeof value === 'string'
+    ? value
+    : ''
+
+}
+
+
+function normalizeDealerTeamRelationNullableString(
+  value: unknown,
+): string | null {
+
+  return typeof value === 'string'
+    ? value
+    : null
+
+}
+
+
+function normalizeDealerTeamRelationStatus(
+  value: unknown,
+): DealerTeamRelationStatus {
+
+  if (
+    value === 'active'
+    ||
+    value === 'inactive'
+    ||
+    value === 'terminated'
+  ) {
+
+    return value
+
+  }
+
+
+  return 'inactive'
+
+}
+
+
+function mapDealerTeamRelation(
+  value: unknown,
+): DealerTeamRelationRecord | undefined {
+
+  if (
+    !value
+    ||
+    typeof value !== 'object'
+  ) {
+
+    return undefined
+
+  }
+
+
+  const row =
+    value as DealerTeamRelationRpcRow
+
+
+  const id =
+    normalizeDealerTeamRelationString(
+      row.id,
+    )
+
+  const dealerId =
+    normalizeDealerTeamRelationString(
+      row.dealer_id
+      ??
+      row.dealerId,
+    )
+
+  const joinedAt =
+    normalizeDealerTeamRelationString(
+      row.joined_at
+      ??
+      row.joinedAt,
+    )
+
+  const createdAt =
+    normalizeDealerTeamRelationString(
+      row.created_at
+      ??
+      row.createdAt,
+    )
+
+  const updatedAt =
+    normalizeDealerTeamRelationString(
+      row.updated_at
+      ??
+      row.updatedAt,
+    )
+
+
+  if (
+    !id
+    ||
+    !dealerId
+  ) {
+
+    return undefined
+
+  }
+
+
+  return {
+
+    id,
+
+    dealerId,
+
+    parentDealerId:
+      normalizeDealerTeamRelationNullableString(
+        row.parent_dealer_id
+        ??
+        row.parentDealerId,
+      ),
+
+    status:
+      normalizeDealerTeamRelationStatus(
+        row.status,
+      ),
+
+    joinedAt,
+
+    endedAt:
+      normalizeDealerTeamRelationNullableString(
+        row.ended_at
+        ??
+        row.endedAt,
+      ),
+
+    createdBy:
+      normalizeDealerTeamRelationNullableString(
+        row.created_by
+        ??
+        row.createdBy,
+      ),
+
+    remark:
+      normalizeDealerTeamRelationNullableString(
+        row.remark,
+      ),
+
+    createdAt,
+
+    updatedAt,
+
+  }
+
+}
+
+
+function mapDealerTeamRelationMutationResponse(
+  value: unknown,
+  fallbackMessage: string,
+): DealerTeamRelationMutationResponse {
+
+  const result =
+    value
+    &&
+    typeof value === 'object'
+      ? value as DealerTeamRelationRpcResponse
+      : {}
+
+
+  return {
+
+    success:
+      result.success === true,
+
+    message:
+      typeof result.message === 'string'
+        ? result.message
+        : fallbackMessage,
+
+    relation:
+      mapDealerTeamRelation(
+        result.relation,
+      ),
+
+    previousRelation:
+      mapDealerTeamRelation(
+        result.previous_relation
+        ??
+        result.previousRelation,
+      ),
+
+    relationId:
+      normalizeDealerTeamRelationNullableString(
+        result.relation_id
+        ??
+        result.relationId,
+      )
+      ??
+      undefined,
+
+    dealerId:
+      normalizeDealerTeamRelationNullableString(
+        result.dealer_id
+        ??
+        result.dealerId,
+      )
+      ??
+      undefined,
+
+    previousParentDealerId:
+      normalizeDealerTeamRelationNullableString(
+        result.previous_parent_dealer_id
+        ??
+        result.previousParentDealerId,
+      ),
+
+    endedAt:
+      normalizeDealerTeamRelationNullableString(
+        result.ended_at
+        ??
+        result.endedAt,
+      )
+      ??
+      undefined,
+
+  }
+
+}
+
+
+export async function assignDealerTeamParent(
+  input: DealerTeamRelationMutationInput,
+): Promise<DealerTeamRelationMutationResponse> {
+
+  const dealerId =
+    input.dealerId.trim()
+
+  const parentDealerId =
+    input.parentDealerId?.trim()
+    ??
+    ''
+
+
+  if (
+    !dealerId
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        '經銷商 ID 不可空白。',
+
+      error:
+        '經銷商 ID 不可空白。',
+
+    }
+
+  }
+
+
+  if (
+    !parentDealerId
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        '上級經銷商 ID 不可空白。',
+
+      error:
+        '上級經銷商 ID 不可空白。',
+
+    }
+
+  }
+
+
+  try {
+
+    const {
+      data,
+      error,
+    } =
+      await supabase.rpc(
+        'assign_dealer_team_parent',
+        {
+          p_dealer_id:
+            dealerId,
+
+          p_parent_dealer_id:
+            parentDealerId,
+
+          p_created_by:
+            input.createdBy
+            ??
+            null,
+
+          p_remark:
+            input.remark?.trim()
+            ||
+            null,
+        },
+      )
+
+
+    if (
+      error
+    ) {
+
+      throw error
+
+    }
+
+
+    return mapDealerTeamRelationMutationResponse(
+      data,
+      '經銷商上級指派成功。',
+    )
+
+  } catch (
+    errorValue
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        '經銷商上級指派失敗。',
+
+      error:
+        normalizeApiError(
+          errorValue,
+          '指派經銷商上級時發生未知錯誤。',
+        ),
+
+    }
+
+  }
+
+}
+
+
+export async function reassignDealerTeamParent(
+  input: DealerTeamRelationMutationInput,
+): Promise<DealerTeamRelationMutationResponse> {
+
+  const dealerId =
+    input.dealerId.trim()
+
+  const newParentDealerId =
+    input.newParentDealerId?.trim()
+    ??
+    ''
+
+
+  if (
+    !dealerId
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        '經銷商 ID 不可空白。',
+
+      error:
+        '經銷商 ID 不可空白。',
+
+    }
+
+  }
+
+
+  if (
+    !newParentDealerId
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        '新上級經銷商 ID 不可空白。',
+
+      error:
+        '新上級經銷商 ID 不可空白。',
+
+    }
+
+  }
+
+
+  try {
+
+    const {
+      data,
+      error,
+    } =
+      await supabase.rpc(
+        'reassign_dealer_team_parent',
+        {
+          p_dealer_id:
+            dealerId,
+
+          p_new_parent_dealer_id:
+            newParentDealerId,
+
+          p_created_by:
+            input.createdBy
+            ??
+            null,
+
+          p_remark:
+            input.remark?.trim()
+            ||
+            null,
+        },
+      )
+
+
+    if (
+      error
+    ) {
+
+      throw error
+
+    }
+
+
+    return mapDealerTeamRelationMutationResponse(
+      data,
+      '經銷商上級變更成功。',
+    )
+
+  } catch (
+    errorValue
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        '經銷商上級變更失敗。',
+
+      error:
+        normalizeApiError(
+          errorValue,
+          '變更經銷商上級時發生未知錯誤。',
+        ),
+
+    }
+
+  }
+
+}
+
+
+export async function unassignDealerTeamParent(
+  input: DealerTeamRelationMutationInput,
+): Promise<DealerTeamRelationMutationResponse> {
+
+  const dealerId =
+    input.dealerId.trim()
+
+
+  if (
+    !dealerId
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        '經銷商 ID 不可空白。',
+
+      error:
+        '經銷商 ID 不可空白。',
+
+    }
+
+  }
+
+
+  try {
+
+    const {
+      data,
+      error,
+    } =
+      await supabase.rpc(
+        'unassign_dealer_team_parent',
+        {
+          p_dealer_id:
+            dealerId,
+
+          p_created_by:
+            input.createdBy
+            ??
+            null,
+
+          p_remark:
+            input.remark?.trim()
+            ||
+            null,
+        },
+      )
+
+
+    if (
+      error
+    ) {
+
+      throw error
+
+    }
+
+
+    return mapDealerTeamRelationMutationResponse(
+      data,
+      '經銷商上級解除成功。',
+    )
+
+  } catch (
+    errorValue
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        '經銷商上級解除失敗。',
+
+      error:
+        normalizeApiError(
+          errorValue,
+          '解除經銷商上級時發生未知錯誤。',
+        ),
+
+    }
+
+  }
+
+}
+

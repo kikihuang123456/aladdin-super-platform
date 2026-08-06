@@ -643,3 +643,48 @@ export interface DealerTeamPerformanceResponse {
   message: string
   error?: string
 }
+
+// =================================
+// Dealer Team Relation
+// =================================
+
+export type DealerTeamRelationStatus =
+  | 'active'
+  | 'inactive'
+  | 'terminated'
+
+
+export interface DealerTeamRelationRecord {
+  id: string
+  dealerId: string
+  parentDealerId: string | null
+  status: DealerTeamRelationStatus
+  joinedAt: string
+  endedAt?: string | null
+  createdBy?: string | null
+  remark?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+
+export interface DealerTeamRelationMutationInput {
+  dealerId: string
+  parentDealerId?: string
+  newParentDealerId?: string
+  createdBy?: string | null
+  remark?: string | null
+}
+
+
+export interface DealerTeamRelationMutationResponse {
+  success: boolean
+  message: string
+  relation?: DealerTeamRelationRecord
+  previousRelation?: DealerTeamRelationRecord
+  relationId?: string
+  dealerId?: string
+  previousParentDealerId?: string | null
+  endedAt?: string
+  error?: string
+}
