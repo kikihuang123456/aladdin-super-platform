@@ -104,6 +104,37 @@ RouteRecordRaw[] = [
   },
 
 },
+  // =================================
+  // M05-03 Dealer Performance
+  // =================================
+
+  {
+    path:
+      '/dealer/performance',
+
+    name:
+      'DealerPerformance',
+
+    component:
+      () =>
+        import(
+          '../../views/dealer/DealerPerformanceView.vue'
+        ),
+
+    meta: {
+      title:
+        '經銷商業績與團隊管理',
+
+      requiresAuth:
+        true,
+
+      permissions: [
+        'dealer.view',
+      ],
+    },
+  },
+
+
 
 
   // =================================

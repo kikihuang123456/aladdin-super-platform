@@ -43,6 +43,11 @@ export const adminNavigation: NavigationItem[] = [
         permission: 'dealer.view',
       },
       {
+        label: '經銷商業績與團隊管理',
+        path: '/dealer/performance',
+        permission: 'dealer.view',
+      },
+      {
         label: '區域與指派',
         permission: 'dealer.view',
         children: [

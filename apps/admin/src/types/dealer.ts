@@ -594,3 +594,52 @@ export interface DealerCreateResponse {
     string
 
 }
+// =================================
+// Dealer Team Performance
+// =================================
+
+export interface DealerTeamMember {
+  id: string
+  dealerNo: string
+  name: string
+  phone?: string | null
+  email?: string | null
+  level: DealerLevel
+  status: DealerStatus
+  directCount: number
+  teamCount: number
+  teamSales: number
+  joinedAt?: string | null
+}
+
+export interface DealerParentSummary {
+  id: string
+  dealerNo: string
+  name: string
+  phone?: string | null
+  email?: string | null
+  level: DealerLevel
+  status: DealerStatus
+  teamSales: number
+}
+
+export interface DealerTeamStatistics {
+  directCount: number
+  teamCount: number
+  teamSales: number
+  totalCommission: number
+}
+
+export interface DealerTeamPerformance {
+  dealer: Dealer
+  parentDealer: DealerParentSummary | null
+  directDealers: DealerTeamMember[]
+  statistics: DealerTeamStatistics
+}
+
+export interface DealerTeamPerformanceResponse {
+  success: boolean
+  data?: DealerTeamPerformance
+  message: string
+  error?: string
+}

@@ -19,13 +19,16 @@ import type {
   DealerCreateResponse,
   DealerDetailResponse,
   DealerFilters,
+  DealerLevel,
   DealerLevelUpdateInput,
   DealerListResponse,
   DealerLogListResponse,
   DealerMutationResponse,
   DealerPagination,
   DealerStatistics,
+  DealerStatus,
   DealerStatusUpdateInput,
+  DealerTeamPerformanceResponse,
 } from '../types/dealer'
 
 
@@ -3252,6 +3255,543 @@ export async function createDealerWithNewMember(
         normalizeApiError(
           errorValue,
           '建立新會員與經銷商時發生未知錯誤。',
+        ),
+
+    }
+
+  }
+
+}
+
+// =================================
+// Dealer Team Value Normalizers
+// =================================
+
+function normalizeDealerLevel(
+  value: unknown,
+): DealerLevel {
+
+  const allowedLevels:
+    DealerLevel[] = [
+      'normal',
+      'star_1',
+      'star_2',
+      'star_3',
+      'star_4',
+      'star_5',
+      'star_6',
+      'star_7',
+    ]
+
+
+  if (
+    typeof value === 'string'
+    &&
+    allowedLevels.includes(
+      value as DealerLevel,
+    )
+  ) {
+
+    return value as DealerLevel
+
+  }
+
+
+  return 'normal'
+
+}
+
+
+function normalizeDealerStatus(
+  value: unknown,
+): DealerStatus {
+
+  const allowedStatuses:
+    DealerStatus[] = [
+      'pending',
+      'approved',
+      'active',
+      'suspended',
+      'disabled',
+    ]
+
+
+  if (
+    typeof value === 'string'
+    &&
+    allowedStatuses.includes(
+      value as DealerStatus,
+    )
+  ) {
+
+    return value as DealerStatus
+
+  }
+
+
+  return 'pending'
+
+}
+
+
+// =================================
+// Dealer Team Performance RPC
+// =================================
+
+interface DealerTeamPerformanceRpcRow {
+
+  dealer?: unknown
+
+  parent_dealer?: unknown
+
+  parentDealer?: unknown
+
+  direct_dealers?: unknown
+
+  directDealers?: unknown
+
+  statistics?: unknown
+
+}
+
+
+interface DealerTeamMemberRpcRow {
+
+  id?: unknown
+
+  dealer_no?: unknown
+
+  dealerNo?: unknown
+
+  name?: unknown
+
+  phone?: unknown
+
+  email?: unknown
+
+  level?: unknown
+
+  status?: unknown
+
+  direct_count?: unknown
+
+  directCount?: unknown
+
+  team_count?: unknown
+
+  teamCount?: unknown
+
+  team_sales?: unknown
+
+  teamSales?: unknown
+
+  joined_at?: unknown
+
+  joinedAt?: unknown
+
+}
+
+
+function normalizeDealerTeamNumber(
+  value: unknown,
+): number {
+
+  if (
+    typeof value === 'number'
+    &&
+    Number.isFinite(value)
+  ) {
+
+    return value
+
+  }
+
+
+  if (
+    typeof value === 'string'
+    &&
+    value.trim() !== ''
+  ) {
+
+    const parsed =
+      Number(value)
+
+    return Number.isFinite(parsed)
+      ? parsed
+      : 0
+
+  }
+
+
+  return 0
+
+}
+
+
+function normalizeDealerTeamNullableString(
+  value: unknown,
+): string | null {
+
+  if (
+    typeof value !== 'string'
+  ) {
+
+    return null
+
+  }
+
+
+  const normalized =
+    value.trim()
+
+
+  return normalized
+    ? normalized
+    : null
+
+}
+
+
+/**
+ * 取得經銷商業績與團隊資料
+ */
+export async function getDealerTeamPerformance(
+  dealerId: string,
+): Promise<DealerTeamPerformanceResponse> {
+
+  const normalizedDealerId =
+    dealerId.trim()
+
+
+  if (
+    !normalizedDealerId
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        'Dealer ID 不可空白。',
+
+      error:
+        'Dealer ID 不可空白。',
+
+    }
+
+  }
+
+
+  try {
+
+    const {
+      data,
+      error,
+    } =
+      await supabase.rpc(
+        'get_dealer_team_performance',
+        {
+
+          p_dealer_id:
+            normalizedDealerId,
+
+        },
+      )
+
+
+    if (
+      error
+    ) {
+
+      throw error
+
+    }
+
+
+    const result =
+      data as
+        DealerTeamPerformanceRpcRow
+        | null
+
+
+    if (
+      !result
+      ||
+      !result.dealer
+    ) {
+
+      return {
+
+        success:
+          false,
+
+        message:
+          '找不到經銷商團隊業績資料。',
+
+        error:
+          'RPC 未回傳經銷商資料。',
+
+      }
+
+    }
+
+
+    const dealer =
+      mapDealer(
+        result.dealer as DealerRow,
+      )
+
+
+    const parentSource =
+      result.parent_dealer
+      ??
+      result.parentDealer
+
+
+    const parentDealer =
+      parentSource
+      &&
+      typeof parentSource === 'object'
+        ? (() => {
+
+            const row =
+              parentSource as
+                DealerTeamMemberRpcRow
+
+            return {
+
+              id:
+                normalizeString(
+                  row.id,
+                ),
+
+              dealerNo:
+                normalizeString(
+                  row.dealer_no
+                  ??
+                  row.dealerNo,
+                ),
+
+              name:
+                normalizeString(
+                  row.name,
+                  '未命名經銷商',
+                ),
+
+              phone:
+                normalizeDealerTeamNullableString(
+                  row.phone,
+                ),
+
+              email:
+                normalizeDealerTeamNullableString(
+                  row.email,
+                ),
+
+              level:
+                normalizeDealerLevel(
+                  row.level,
+                ),
+
+              status:
+                normalizeDealerStatus(
+                  row.status,
+                ),
+
+              teamSales:
+                normalizeDealerTeamNumber(
+                  row.team_sales
+                  ??
+                  row.teamSales,
+                ),
+
+            }
+
+          })()
+        : null
+
+
+    const directSource =
+      result.direct_dealers
+      ??
+      result.directDealers
+
+
+    const directDealers =
+      Array.isArray(
+        directSource,
+      )
+        ? directSource.map(
+            (
+              item,
+            ) => {
+
+              const row =
+                item as
+                  DealerTeamMemberRpcRow
+
+              return {
+
+                id:
+                  normalizeString(
+                    row.id,
+                  ),
+
+                dealerNo:
+                  normalizeString(
+                    row.dealer_no
+                    ??
+                    row.dealerNo,
+                  ),
+
+                name:
+                  normalizeString(
+                    row.name,
+                    '未命名經銷商',
+                  ),
+
+                phone:
+                  normalizeDealerTeamNullableString(
+                    row.phone,
+                  ),
+
+                email:
+                  normalizeDealerTeamNullableString(
+                    row.email,
+                  ),
+
+                level:
+                  normalizeDealerLevel(
+                    row.level,
+                  ),
+
+                status:
+                  normalizeDealerStatus(
+                    row.status,
+                  ),
+
+                directCount:
+                  normalizeDealerTeamNumber(
+                    row.direct_count
+                    ??
+                    row.directCount,
+                  ),
+
+                teamCount:
+                  normalizeDealerTeamNumber(
+                    row.team_count
+                    ??
+                    row.teamCount,
+                  ),
+
+                teamSales:
+                  normalizeDealerTeamNumber(
+                    row.team_sales
+                    ??
+                    row.teamSales,
+                  ),
+
+                joinedAt:
+                  normalizeDealerTeamNullableString(
+                    row.joined_at
+                    ??
+                    row.joinedAt,
+                  ),
+
+              }
+
+            },
+          )
+        : []
+
+
+    const statisticsSource =
+      result.statistics
+      &&
+      typeof result.statistics ===
+        'object'
+        ? result.statistics as
+            Record<string, unknown>
+        : {}
+
+
+    return {
+
+      success:
+        true,
+
+      data: {
+
+        dealer,
+
+        parentDealer,
+
+        directDealers,
+
+        statistics: {
+
+          directCount:
+            normalizeDealerTeamNumber(
+              statisticsSource.direct_count
+              ??
+              statisticsSource.directCount
+              ??
+              dealer.directCount,
+            ),
+
+          teamCount:
+            normalizeDealerTeamNumber(
+              statisticsSource.team_count
+              ??
+              statisticsSource.teamCount
+              ??
+              dealer.teamCount,
+            ),
+
+          teamSales:
+            normalizeDealerTeamNumber(
+              statisticsSource.team_sales
+              ??
+              statisticsSource.teamSales
+              ??
+              dealer.teamSales,
+            ),
+
+          totalCommission:
+            normalizeDealerTeamNumber(
+              statisticsSource.total_commission
+              ??
+              statisticsSource.totalCommission
+              ??
+              dealer.totalCommission,
+            ),
+
+        },
+
+      },
+
+      message:
+        '經銷商團隊業績載入成功。',
+
+    }
+
+  } catch (
+    errorValue
+  ) {
+
+    return {
+
+      success:
+        false,
+
+      message:
+        '經銷商團隊業績載入失敗。',
+
+      error:
+        normalizeApiError(
+          errorValue,
+          '取得經銷商團隊業績時發生未知錯誤。',
         ),
 
     }
