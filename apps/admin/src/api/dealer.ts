@@ -2308,38 +2308,103 @@ export async function reviewDealer(
 
 
 
-  const now =
-    new Date()
-      .toISOString()
+  const {
+  data: authUserData,
+  error: authUserError,
+} =
+  await supabase.auth
+    .getUser()
 
 
+if(
+  authUserError
+){
 
-  const payload:
-    Record<string, unknown> = {
+  return {
+
+    success:
+      false,
+
+    message:
+      '無法取得目前登入管理員。',
+
+    error:
+      normalizeApiError(
+        authUserError,
+        '取得目前登入管理員資料失敗。',
+      ),
+
+  }
+
+}
 
 
-      status:
-        input.status,
+const approverId =
+  authUserData.user
+    ?.id
+    ?.trim()
+  ||
+  input.approvedBy
+    ?.trim()
+  ||
+  null
 
 
-      approved_by:
-        input.approvedBy ??
-        null,
+if(
+  !approverId
+){
+
+  return {
+
+    success:
+      false,
+
+    message:
+      '無法確認審核管理員。',
+
+    error:
+      '目前登入階段未包含管理員 UUID，請重新登入後再試。',
+
+  }
+
+}
 
 
-      approved_at:
-        now,
+const now =
+  new Date()
+    .toISOString()
 
 
-      remark:
-        input.remark ??
-        null,
+const normalizedRemark =
+  input.remark
+    ?.trim()
+  ||
+  (
+    input.status === 'approved'
+      ? '審核通過'
+      : '審核拒絕'
+  )
 
 
-      updated_at:
-        now,
+const payload:
+  Record<string, unknown> = {
 
-    }
+  status:
+    input.status,
+
+  approved_by:
+    approverId,
+
+  approved_at:
+    now,
+
+  remark:
+    normalizedRemark,
+
+  updated_at:
+    now,
+
+}
 
 
 
