@@ -327,6 +327,49 @@ onMounted(
   >
 
     <div>
+      <div
+  v-if="
+    dealerStore.isMutating ||
+    submittingDealerId
+  "
+  class="approval-message approval-message--loading"
+>
+  <span class="approval-message__icon">
+    ⏳
+  </span>
+
+  <span>
+    經銷商審核資料送出中，請稍候……
+  </span>
+</div>
+
+
+<div
+  v-else-if="dealerStore.error"
+  class="approval-message approval-message--error"
+>
+  <span class="approval-message__icon">
+    ⚠️
+  </span>
+
+  <span>
+    {{ dealerStore.error }}
+  </span>
+</div>
+
+
+<div
+  v-else-if="dealerStore.mutationMessage"
+  class="approval-message approval-message--success"
+>
+  <span class="approval-message__icon">
+    ✓
+  </span>
+
+  <span>
+    {{ dealerStore.mutationMessage }}
+  </span>
+</div>
 
       <p class="eyebrow">
         Dealer ERP
@@ -467,6 +510,62 @@ h1{
 
 }
 
+.approval-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.6;
+}
 
+.approval-message__icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.approval-message--loading {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.approval-message--loading
+.approval-message__icon {
+  background: #dbeafe;
+}
+
+.approval-message--success {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.approval-message--success
+.approval-message__icon {
+  background: #dcfce7;
+}
+
+.approval-message--error {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.approval-message--error
+.approval-message__icon {
+  background: #fee2e2;
+}
 
 </style>
