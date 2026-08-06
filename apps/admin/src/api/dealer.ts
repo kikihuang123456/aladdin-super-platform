@@ -3463,12 +3463,12 @@ export async function getDealerTeamPerformance(
   dealerId: string,
 ): Promise<DealerTeamPerformanceResponse> {
 
-  const normalizedDealerId =
+  const normalizedIdentifier =
     dealerId.trim()
 
 
   if (
-    !normalizedDealerId
+    !normalizedIdentifier
   ) {
 
     return {
@@ -3477,10 +3477,10 @@ export async function getDealerTeamPerformance(
         false,
 
       message:
-        'Dealer ID 不可空白。',
+        '經銷商 ID 或會員 ID 不可空白。',
 
       error:
-        'Dealer ID 不可空白。',
+        '經銷商 ID 或會員 ID 不可空白。',
 
     }
 
@@ -3488,6 +3488,90 @@ export async function getDealerTeamPerformance(
 
 
   try {
+
+    const uuidPattern =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+
+    if (
+      !uuidPattern.test(
+        normalizedIdentifier,
+      )
+    ) {
+
+      return {
+
+        success:
+          false,
+
+        message:
+          '請輸入正確的經銷商 UUID 或會員 UUID。',
+
+        error:
+          '輸入格式不是有效 UUID。',
+
+      }
+
+    }
+
+
+    const {
+      data: resolvedDealer,
+      error: resolveError,
+    } =
+      await supabase
+        .from(
+          DEALER_TABLE,
+        )
+        .select(
+          'id',
+        )
+        .or(
+          [
+            `id.eq.${normalizedIdentifier}`,
+            `member_id.eq.${normalizedIdentifier}`,
+          ].join(','),
+        )
+        .limit(
+          1,
+        )
+        .maybeSingle()
+
+
+    if (
+      resolveError
+    ) {
+
+      throw resolveError
+
+    }
+
+
+    if (
+      !resolvedDealer?.id
+    ) {
+
+      return {
+
+        success:
+          false,
+
+        message:
+          '找不到對應的經銷商資料。',
+
+        error:
+          '輸入的經銷商 ID 或會員 ID 沒有對應資料。',
+
+      }
+
+    }
+
+
+    const resolvedDealerId =
+      String(
+        resolvedDealer.id,
+      )
+
 
     const {
       data,
@@ -3498,7 +3582,7 @@ export async function getDealerTeamPerformance(
         {
 
           p_dealer_id:
-            normalizedDealerId,
+            resolvedDealerId,
 
         },
       )
