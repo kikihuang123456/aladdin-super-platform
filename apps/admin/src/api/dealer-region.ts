@@ -1213,11 +1213,11 @@ export async function getRegionDealers(
         assigned_at,
         remark,
 
-        members(
+        members:dealers(
           id,
           name,
           phone,
-          member_code
+          dealer_no
         )
 
       `)
@@ -1269,7 +1269,7 @@ export async function getDealerRegionLogs(
         remark,
         created_at,
 
-        members(
+        members:dealers(
           name
         )
 
