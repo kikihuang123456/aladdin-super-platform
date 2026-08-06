@@ -18,8 +18,20 @@ import {
   useAuthStore,
 } from '../../stores/auth'
 
+import {
+  useRouter,
+} from 'vue-router'
+
+
+import type {
+  Dealer,
+} from '../../types/dealer'
+
 const dealerStore =
   useDealerStore()
+
+const router =
+  useRouter()
 
 const authStore =
   useAuthStore()
@@ -52,22 +64,31 @@ async function loadPendingDealers(){
 
 
 
-function handleView(
-  dealer:any,
-){
+async function handleView(
+  dealer: Dealer,
+): Promise<void> {
 
-  console.log(
-    '查看經銷商',
-    dealer,
-  )
+  await router.push({
+
+    name:
+      'dealer-detail',
+
+    params: {
+
+      id:
+        dealer.id,
+
+    },
+
+  })
 
 }
 
 
 
 async function handleApprove(
-  dealer:any,
-){
+  dealer: Dealer,
+): Promise<void> {
 
   const approverId =
   authStore.user?.id
@@ -117,8 +138,8 @@ const result =
 
 
 async function handleReject(
-  dealer:any,
-){
+  dealer: Dealer,
+): Promise<void> {
 
   const approverId =
   authStore.user?.id
