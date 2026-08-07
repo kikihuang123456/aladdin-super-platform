@@ -3908,6 +3908,8 @@ interface DealerTeamRelationRpcRow {
   endedAt?: unknown
   created_by?: unknown
   createdBy?: unknown
+  ended_by?: unknown
+  endedBy?: unknown
   remark?: unknown
   created_at?: unknown
   createdAt?: unknown
@@ -4520,10 +4522,16 @@ interface DealerTeamRelationHistoryRpcItem {
   endedAt?: unknown
   created_by?: unknown
   createdBy?: unknown
+  ended_by?: unknown
+  endedBy?: unknown
   operator_name?: unknown
   operatorName?: unknown
   operator_email?: unknown
   operatorEmail?: unknown
+  ended_operator_name?: unknown
+  endedOperatorName?: unknown
+  ended_operator_email?: unknown
+  endedOperatorEmail?: unknown
   remark?: unknown
   created_at?: unknown
   createdAt?: unknown
@@ -4602,6 +4610,25 @@ function mapDealerTeamRelationHistoryItem(
     )
     ||
     '系統／歷史資料'
+
+  const endedBy =
+    normalizeDealerTeamRelationString(
+      row.ended_by ??
+        row.endedBy,
+    )
+
+  const endedOperatorName =
+    normalizeDealerTeamRelationString(
+      row.ended_operator_name ??
+        row.endedOperatorName,
+    )
+
+  const endedOperatorEmail =
+    normalizeDealerTeamRelationString(
+      row.ended_operator_email ??
+        row.endedOperatorEmail,
+    )
+
 
   const createdAt =
     normalizeDealerTeamRelationString(
@@ -4699,7 +4726,10 @@ function mapDealerTeamRelationHistoryItem(
 
     updatedAt,
 
-  }
+      endedBy,
+    endedOperatorName,
+    endedOperatorEmail,
+}
 
 }
 

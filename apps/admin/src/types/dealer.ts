@@ -705,6 +705,9 @@ export interface DealerTeamRelationHistoryItem {
   joinedAt: string
   endedAt?: string | null
   createdBy?: string | null
+  endedBy?: string | null
+  endedOperatorName?: string | null
+  endedOperatorEmail?: string | null
   operatorName: string
   operatorEmail?: string | null
   remark?: string | null

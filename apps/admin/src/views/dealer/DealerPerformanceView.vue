@@ -545,7 +545,8 @@
                 <th>上級經銷商</th>
                 <th>開始時間</th>
                 <th>結束時間</th>
-                <th>操作人</th>
+                <th>建立操作人</th>
+              <th>終止操作人</th>
                 <th>操作備註</th>
               </tr>
             </thead>
@@ -619,6 +620,22 @@
                     }}
                   </small>
                 </td>
+
+            <td>
+              <strong>
+                {{
+                  item.endedOperatorName
+                  ?? '—'
+                }}
+              </strong>
+
+              <small>
+                {{
+                  item.endedOperatorEmail
+                  ?? '—'
+                }}
+              </small>
+            </td>
 
                 <td class="history-table__remark">
                   {{ item.remark ?? '—' }}
