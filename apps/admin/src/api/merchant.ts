@@ -698,66 +698,39 @@ export async function reviewMerchant(
     }
   }
 
-  const now =
-    new Date().toISOString()
-
-  const payload:
-    Record<string, unknown> = {
-      status:
-        input.status,
-
-      reviewed_by:
-        input.reviewedBy ??
-        null,
-
-      reviewed_at:
-        now,
-
-      review_remark:
-        input.reviewRemark ??
-        null,
-
-      updated_at:
-        now,
-    }
-
-  if (
-    input.status ===
-    'approved'
-  ) {
-    payload.activated_at =
-      now
-  }
-
-  if (
-    input.status ===
-    'rejected'
-  ) {
-    payload.activated_at =
-      null
-  }
-
   try {
     const {
       data,
       error,
     } =
-      await supabase
-        .from(
-          MERCHANT_TABLE,
-        )
-        .update(
-          payload,
-        )
-        .eq(
-          'id',
-          normalizedId,
-        )
-        .select('*')
-        .single()
+      await supabase.rpc(
+        'review_merchant',
+        {
+          p_merchant_id:
+            normalizedId,
+
+          p_status:
+            input.status,
+
+          p_review_remark:
+            input.reviewRemark?.trim() ||
+            null,
+        },
+      )
 
     if (error) {
       throw error
+    }
+
+    const row =
+      Array.isArray(data)
+        ? data[0]
+        : data
+
+    if (!row) {
+      throw new Error(
+        '商家審核成功，但未取得商家資料。',
+      )
     }
 
     return {
@@ -766,8 +739,7 @@ export async function reviewMerchant(
 
       merchant:
         mapMerchant(
-          data as
-            MerchantRow,
+          row as MerchantRow,
         ),
 
       message:
@@ -792,7 +764,8 @@ export async function reviewMerchant(
           : '商家審核更新發生未知錯誤。',
     }
   }
-}// =================================
+}
+// =================================
 // 更新商家狀態
 // =================================
 
@@ -816,66 +789,39 @@ export async function updateMerchantStatus(
     }
   }
 
-  const now =
-    new Date().toISOString()
-
-  const payload:
-    Record<string, unknown> = {
-      status:
-        input.status,
-
-      updated_at:
-        now,
-    }
-
-  if (
-    input.status ===
-    'active'
-  ) {
-    payload.activated_at =
-      now
-  }
-
-  if (
-    input.status ===
-      'suspended' ||
-    input.status ===
-      'disabled'
-  ) {
-    payload.review_remark =
-      input.remark ??
-      null
-  }
-
-  if (
-    input.operatorId !==
-    undefined
-  ) {
-    payload.reviewed_by =
-      input.operatorId
-  }
-
   try {
     const {
       data,
       error,
     } =
-      await supabase
-        .from(
-          MERCHANT_TABLE,
-        )
-        .update(
-          payload,
-        )
-        .eq(
-          'id',
-          normalizedId,
-        )
-        .select('*')
-        .single()
+      await supabase.rpc(
+        'update_merchant_status',
+        {
+          p_merchant_id:
+            normalizedId,
+
+          p_status:
+            input.status,
+
+          p_remark:
+            input.remark?.trim() ||
+            null,
+        },
+      )
 
     if (error) {
       throw error
+    }
+
+    const row =
+      Array.isArray(data)
+        ? data[0]
+        : data
+
+    if (!row) {
+      throw new Error(
+        '商家狀態更新成功，但未取得商家資料。',
+      )
     }
 
     return {
@@ -884,8 +830,7 @@ export async function updateMerchantStatus(
 
       merchant:
         mapMerchant(
-          data as
-            MerchantRow,
+          row as MerchantRow,
         ),
 
       message:
@@ -910,6 +855,7 @@ export async function updateMerchantStatus(
     }
   }
 }
+
 
 function getMerchantStatusMessage(
   status:
