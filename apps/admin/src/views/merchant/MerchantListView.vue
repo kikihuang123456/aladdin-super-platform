@@ -34,7 +34,9 @@
             "
             class="primary-button"
             type="button"
-          >
+          
+        @click="$router.push('/merchants/create')"
+      >
             新增商家
           </button>
         </div>
