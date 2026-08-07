@@ -45,7 +45,7 @@ export const adminNavigation: NavigationItem[] = [
       {
         label: '經銷商業績與團隊管理',
         path: '/dealer/performance',
-        permission: 'dealer.view',
+        permission: 'dealer.team.view',
       },
       {
         label: '區域與指派',
@@ -127,8 +127,19 @@ export const adminNavigation: NavigationItem[] = [
   },
   {
     label: 'ERP 系統管理',
-    path: '/system',
     permission: 'system.view',
-    disabled: true,
+    roles: [
+      'super_admin',
+    ],
+    children: [
+      {
+        label: '角色權限管理',
+        path: '/system/permissions',
+        permission: 'system.view',
+        roles: [
+          'super_admin',
+        ],
+      },
+    ],
   },
 ]

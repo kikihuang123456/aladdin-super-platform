@@ -24,6 +24,45 @@ export interface UserPermission {
 }
 
 
+export interface RolePermissionMatrixRole {
+  id: string
+  code: string
+  name: string
+  description: string | undefined
+  locked: boolean
+}
+
+
+export interface RolePermissionMatrixPermission {
+  id: string
+  code: string
+  name: string
+  module: string
+}
+
+
+export interface RolePermissionMatrixAssignment {
+  roleId: string
+  permissionId: string
+}
+
+
+export interface RolePermissionMatrix {
+  roles: RolePermissionMatrixRole[]
+  permissions: RolePermissionMatrixPermission[]
+  assignments: RolePermissionMatrixAssignment[]
+}
+
+
+export interface UpdateRolePermissionsResult {
+  success: boolean
+  message: string
+  roleId: string
+  roleCode: string
+  assignedCount: number
+}
+
+
 interface PermissionRecord {
   id?: unknown
   code?: unknown
@@ -624,6 +663,483 @@ class PermissionApi {
         primaryRole,
 
       permissions,
+
+    }
+
+  }
+
+
+  async getRolePermissionMatrix():
+    Promise<RolePermissionMatrix> {
+
+    const {
+      data,
+      error,
+    } =
+      await supabase.rpc(
+        'get_role_permission_matrix',
+      )
+
+
+    if (
+      error
+    ) {
+
+      throw new Error(
+        normalizeApiError(
+          error,
+          '取得角色權限矩陣失敗。',
+        ),
+      )
+
+    }
+
+
+    if (
+      !data
+      ||
+      typeof data !== 'object'
+    ) {
+
+      throw new Error(
+        '角色權限矩陣未回傳有效資料。',
+      )
+
+    }
+
+
+    const result =
+      data as Record<
+        string,
+        unknown
+      >
+
+
+    if (
+      result.success !== true
+    ) {
+
+      throw new Error(
+        typeof result.message === 'string'
+          ? result.message
+          : '取得角色權限矩陣失敗。',
+      )
+
+    }
+
+
+    const roleRows =
+      Array.isArray(
+        result.roles,
+      )
+        ? result.roles
+        : []
+
+
+    const permissionRows =
+      Array.isArray(
+        result.permissions,
+      )
+        ? result.permissions
+        : []
+
+
+    const assignmentRows =
+      Array.isArray(
+        result.assignments,
+      )
+        ? result.assignments
+        : []
+
+
+    const roles:
+      RolePermissionMatrixRole[] =
+        roleRows
+          .map(
+            (
+              value,
+            ) => {
+
+              if (
+                !value
+                ||
+                typeof value !==
+                  'object'
+              ) {
+
+                return null
+
+              }
+
+
+              const row =
+                value as Record<
+                  string,
+                  unknown
+                >
+
+
+              const id =
+                normalizeString(
+                  row.id,
+                )
+
+              const code =
+                normalizeString(
+                  row.code,
+                )
+
+              const name =
+                normalizeString(
+                  row.name,
+                )
+
+
+              if (
+                !id
+                ||
+                !code
+                ||
+                !name
+              ) {
+
+                return null
+
+              }
+
+
+              return {
+
+                id,
+
+                code,
+
+                name,
+
+                description:
+                  normalizeString(
+                    row.description,
+                  )
+                  ||
+                  undefined,
+
+                locked:
+                  row.locked === true,
+
+              }
+
+            },
+          )
+          .filter(
+            (
+              role,
+            ): role is RolePermissionMatrixRole =>
+              role !== null,
+          )
+
+
+    const permissions:
+      RolePermissionMatrixPermission[] =
+        permissionRows
+          .map(
+            (
+              value,
+            ) => {
+
+              if (
+                !value
+                ||
+                typeof value !==
+                  'object'
+              ) {
+
+                return null
+
+              }
+
+
+              const row =
+                value as Record<
+                  string,
+                  unknown
+                >
+
+
+              const id =
+                normalizeString(
+                  row.id,
+                )
+
+              const code =
+                normalizeString(
+                  row.code,
+                )
+
+              const name =
+                normalizeString(
+                  row.name,
+                )
+
+
+              if (
+                !id
+                ||
+                !code
+                ||
+                !name
+              ) {
+
+                return null
+
+              }
+
+
+              return {
+
+                id,
+
+                code,
+
+                name,
+
+                module:
+                  normalizeString(
+                    row.module,
+                    'other',
+                  ),
+
+              }
+
+            },
+          )
+          .filter(
+            (
+              permission,
+            ): permission is RolePermissionMatrixPermission =>
+              permission !== null,
+          )
+
+
+    const assignments:
+      RolePermissionMatrixAssignment[] =
+        assignmentRows
+          .map(
+            (
+              value,
+            ) => {
+
+              if (
+                !value
+                ||
+                typeof value !==
+                  'object'
+              ) {
+
+                return null
+
+              }
+
+
+              const row =
+                value as Record<
+                  string,
+                  unknown
+                >
+
+
+              const roleId =
+                normalizeString(
+                  row.roleId
+                  ??
+                  row.role_id,
+                )
+
+              const permissionId =
+                normalizeString(
+                  row.permissionId
+                  ??
+                  row.permission_id,
+                )
+
+
+              if (
+                !roleId
+                ||
+                !permissionId
+              ) {
+
+                return null
+
+              }
+
+
+              return {
+
+                roleId,
+
+                permissionId,
+
+              }
+
+            },
+          )
+          .filter(
+            (
+              assignment,
+            ): assignment is RolePermissionMatrixAssignment =>
+              assignment !== null,
+          )
+
+
+    return {
+
+      roles,
+
+      permissions,
+
+      assignments,
+
+    }
+
+  }
+
+
+  async updateRolePermissions(
+    roleId: string,
+    permissionIds: string[],
+  ): Promise<UpdateRolePermissionsResult> {
+
+    const normalizedRoleId =
+      roleId.trim()
+
+
+    if (
+      !normalizedRoleId
+    ) {
+
+      throw new Error(
+        '角色 ID 不可空白。',
+      )
+
+    }
+
+
+    const normalizedPermissionIds =
+      Array.from(
+        new Set(
+          permissionIds
+            .map(
+              (
+                permissionId,
+              ) =>
+                permissionId.trim(),
+            )
+            .filter(Boolean),
+        ),
+      )
+
+
+    const {
+      data,
+      error,
+    } =
+      await supabase.rpc(
+        'update_role_permissions',
+        {
+          p_role_id:
+            normalizedRoleId,
+
+          p_permission_ids:
+            normalizedPermissionIds,
+        },
+      )
+
+
+    if (
+      error
+    ) {
+
+      throw new Error(
+        normalizeApiError(
+          error,
+          '更新角色權限失敗。',
+        ),
+      )
+
+    }
+
+
+    if (
+      !data
+      ||
+      typeof data !== 'object'
+    ) {
+
+      throw new Error(
+        '更新角色權限後未取得有效回應。',
+      )
+
+    }
+
+
+    const result =
+      data as Record<
+        string,
+        unknown
+      >
+
+
+    if (
+      result.success !== true
+    ) {
+
+      throw new Error(
+        typeof result.message === 'string'
+          ? result.message
+          : '更新角色權限失敗。',
+      )
+
+    }
+
+
+    return {
+
+      success:
+        true,
+
+      message:
+        normalizeString(
+          result.message,
+          '角色權限更新成功。',
+        ),
+
+      roleId:
+        normalizeString(
+          result.roleId
+          ??
+          result.role_id,
+          normalizedRoleId,
+        ),
+
+      roleCode:
+        normalizeString(
+          result.roleCode
+          ??
+          result.role_code,
+        ),
+
+      assignedCount:
+        typeof (
+          result.assignedCount
+          ??
+          result.assigned_count
+        ) === 'number'
+          ? Number(
+              result.assignedCount
+              ??
+              result.assigned_count,
+            )
+          : normalizedPermissionIds.length,
 
     }
 

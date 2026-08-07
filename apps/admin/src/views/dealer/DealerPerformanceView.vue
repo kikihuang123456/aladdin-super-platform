@@ -51,7 +51,10 @@
       </div>
     </section>
 
-    <section class="relation-card">
+    <section
+      v-if="canManageTeamRelations"
+      class="relation-card"
+    >
       <div class="relation-card__header">
         <div>
           <p class="relation-card__eyebrow">
@@ -664,6 +667,10 @@ import {
   useAuthStore,
 } from '../../stores/auth'
 
+import {
+  usePermissionStore,
+} from '../../stores/permission'
+
 
 const performanceStore =
   useDealerPerformanceStore()
@@ -683,6 +690,19 @@ const historyStore =
 
 const authStore =
   useAuthStore()
+
+
+const permissionStore =
+  usePermissionStore()
+
+
+const canManageTeamRelations =
+  computed(
+    () =>
+      permissionStore.hasPermission(
+        'dealer.team.manage',
+      ),
+  )
 
 
 type RelationMode =
@@ -781,6 +801,19 @@ void {
 
 async function handleRelationSubmit():
 Promise<void> {
+
+  if (
+    !canManageTeamRelations.value
+  ) {
+
+    window.alert(
+      '目前帳號沒有管理經銷商上下級關係的權限。',
+    )
+
+    return
+
+  }
+
 
   const normalizedDealerId =
     selectedDealerId.value.trim()

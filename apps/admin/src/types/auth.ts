@@ -22,6 +22,8 @@ export type PermissionCode =
   | 'dealer.create'
   | 'dealer.update'
   | 'dealer.approve'
+  | 'dealer.team.view'
+  | 'dealer.team.manage'
   | 'mall.view'
   | 'mall.create'
   | 'mall.update'

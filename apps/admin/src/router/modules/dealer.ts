@@ -129,7 +129,7 @@ RouteRecordRaw[] = [
         true,
 
       permissions: [
-        'dealer.view',
+        'dealer.team.view',
       ],
     },
   },
