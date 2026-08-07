@@ -572,6 +572,17 @@
         >
           清除篩選
         </button>
+
+        <button
+          type="button"
+          class="history-export-button"
+          :disabled="
+            filteredHistory.length === 0
+          "
+          @click="exportHistoryCsv"
+        >
+          匯出 CSV
+        </button>
       </div>
 
 
@@ -895,6 +906,141 @@ const clearHistoryFilters = (): void => {
   historyDateFrom.value = ''
   historyDateTo.value = ''
 }
+
+const escapeHistoryCsvCell = (
+  value: unknown,
+): string => {
+  const textValue =
+    value === null
+    || value === undefined
+      ? ''
+      : String(value)
+
+  return `"${textValue.replace(/"/g, '""')}"`
+}
+
+const formatHistoryExportDate = (
+  value: string | null | undefined,
+): string => {
+  if (!value) {
+    return ''
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return date.toLocaleString(
+    'zh-TW',
+    {
+      hour12: false,
+    },
+  )
+}
+
+const exportHistoryCsv = (): void => {
+  if (filteredHistory.value.length === 0) {
+    window.alert(
+      '目前沒有可匯出的團隊關係歷史。',
+    )
+    return
+  }
+
+  const headers = [
+    '狀態',
+    '經銷商編號',
+    '經銷商名稱',
+    '上級經銷商編號',
+    '上級經銷商名稱',
+    '開始時間',
+    '結束時間',
+    '建立操作人',
+    '建立操作人 Email',
+    '終止操作人',
+    '終止操作人 Email',
+    '操作備註',
+  ]
+
+  const rows =
+    filteredHistory.value.map(
+      (item) => [
+        item.status === 'active'
+          ? '目前有效'
+          : item.status === 'terminated'
+            ? '已終止'
+            : item.status,
+        item.dealerNo,
+        item.dealerName,
+        item.parentDealerNo ?? '',
+        item.parentDealerName ?? '',
+        formatHistoryExportDate(
+          item.joinedAt,
+        ),
+        formatHistoryExportDate(
+          item.endedAt,
+        ),
+        item.operatorName ?? '',
+        item.operatorEmail ?? '',
+        item.endedOperatorName ?? '',
+        item.endedOperatorEmail ?? '',
+        item.remark ?? '',
+      ],
+    )
+
+  const csv = [
+    headers,
+    ...rows,
+  ]
+    .map(
+      (row) =>
+        row
+          .map(escapeHistoryCsvCell)
+          .join(','),
+    )
+    .join('\r\n')
+
+  const blob = new Blob(
+    [
+      '\uFEFF',
+      csv,
+    ],
+    {
+      type:
+        'text/csv;charset=utf-8;',
+    },
+  )
+
+  const url =
+    URL.createObjectURL(blob)
+
+  const link =
+    document.createElement('a')
+
+  const now = new Date()
+
+  const datePart = [
+    now.getFullYear(),
+    String(
+      now.getMonth() + 1,
+    ).padStart(2, '0'),
+    String(
+      now.getDate(),
+    ).padStart(2, '0'),
+  ].join('')
+
+  link.href = url
+  link.download =
+    `dealer-team-audit-${datePart}.csv`
+
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+
+  URL.revokeObjectURL(url)
+}
+
 
 
 
@@ -1924,6 +2070,28 @@ onBeforeUnmount(() => {
   .history-filters {
     grid-template-columns: 1fr;
   }
+}
+
+
+
+.history-export-button {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  background: #fff;
+  color: #334155;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.history-export-button:hover:not(:disabled) {
+  background: #f1f5f9;
+}
+
+.history-export-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 </style>
