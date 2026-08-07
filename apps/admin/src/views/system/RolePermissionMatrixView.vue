@@ -107,7 +107,7 @@ function goHome():
   void {
 
   void router.push(
-    '/dashboard',
+    '/',
   )
 
 }
