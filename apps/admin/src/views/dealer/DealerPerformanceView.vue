@@ -583,6 +583,17 @@
         >
           匯出 CSV
         </button>
+
+        <button
+          type="button"
+          class="history-export-button"
+          :disabled="
+            filteredHistory.length === 0
+          "
+          @click="exportHistoryExcel"
+        >
+          匯出 Excel
+        </button>
       </div>
 
 
@@ -731,6 +742,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import * as XLSX from 'xlsx'
 
 import {
   useDealerPerformanceStore,
@@ -1040,6 +1052,117 @@ const exportHistoryCsv = (): void => {
 
   URL.revokeObjectURL(url)
 }
+
+const exportHistoryExcel = (): void => {
+  if (filteredHistory.value.length === 0) {
+    window.alert(
+      '目前沒有可匯出的團隊關係歷史。',
+    )
+    return
+  }
+
+  const exportRows =
+    filteredHistory.value.map(
+      (item) => ({
+        狀態:
+          item.status === 'active'
+            ? '目前有效'
+            : item.status === 'terminated'
+              ? '已終止'
+              : item.status,
+
+        經銷商編號:
+          item.dealerNo,
+
+        經銷商名稱:
+          item.dealerName,
+
+        上級經銷商編號:
+          item.parentDealerNo ?? '',
+
+        上級經銷商名稱:
+          item.parentDealerName ?? '',
+
+        開始時間:
+          formatHistoryExportDate(
+            item.joinedAt,
+          ),
+
+        結束時間:
+          formatHistoryExportDate(
+            item.endedAt,
+          ),
+
+        建立操作人:
+          item.operatorName ?? '',
+
+        '建立操作人 Email':
+          item.operatorEmail ?? '',
+
+        終止操作人:
+          item.endedOperatorName ?? '',
+
+        '終止操作人 Email':
+          item.endedOperatorEmail ?? '',
+
+        操作備註:
+          item.remark ?? '',
+      }),
+    )
+
+  const worksheet =
+    XLSX.utils.json_to_sheet(
+      exportRows,
+    )
+
+  worksheet['!cols'] = [
+    { wch: 12 },
+    { wch: 16 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 20 },
+    { wch: 22 },
+    { wch: 22 },
+    { wch: 20 },
+    { wch: 30 },
+    { wch: 20 },
+    { wch: 30 },
+    { wch: 38 },
+  ]
+
+  if (worksheet['!ref']) {
+    worksheet['!autofilter'] = {
+      ref: worksheet['!ref'],
+    }
+  }
+
+  const workbook =
+    XLSX.utils.book_new()
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    worksheet,
+    '團隊關係稽核',
+  )
+
+  const now = new Date()
+
+  const datePart = [
+    now.getFullYear(),
+    String(
+      now.getMonth() + 1,
+    ).padStart(2, '0'),
+    String(
+      now.getDate(),
+    ).padStart(2, '0'),
+  ].join('')
+
+  XLSX.writeFile(
+    workbook,
+    `dealer-team-audit-${datePart}.xlsx`,
+  )
+}
+
 
 
 
