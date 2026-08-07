@@ -509,9 +509,71 @@
           </div>
 
           <span class="history-panel__count">
-            共 {{ historyStore.total }} 筆
+            顯示 {{ filteredHistory.length }} / 共 {{ historyStore.total }} 筆
           </span>
         </div>
+
+      <div class="history-filters">
+        <label class="history-filter">
+          <span>關鍵字</span>
+          <input
+            v-model.trim="historyKeyword"
+            type="search"
+            placeholder="經銷商、上級、備註"
+          />
+        </label>
+
+        <label class="history-filter">
+          <span>狀態</span>
+          <select v-model="historyStatus">
+            <option value="all">
+              全部
+            </option>
+            <option value="active">
+              目前有效
+            </option>
+            <option value="terminated">
+              已終止
+            </option>
+          </select>
+        </label>
+
+        <label class="history-filter">
+          <span>操作人</span>
+          <input
+            v-model.trim="
+              historyOperatorKeyword
+            "
+            type="search"
+            placeholder="姓名或 Email"
+          />
+        </label>
+
+        <label class="history-filter">
+          <span>開始日期</span>
+          <input
+            v-model="historyDateFrom"
+            type="date"
+          />
+        </label>
+
+        <label class="history-filter">
+          <span>結束日期</span>
+          <input
+            v-model="historyDateTo"
+            type="date"
+          />
+        </label>
+
+        <button
+          type="button"
+          class="history-filter-clear"
+          @click="clearHistoryFilters"
+        >
+          清除篩選
+        </button>
+      </div>
+
 
         <div
           v-if="historyStore.error"
@@ -528,10 +590,10 @@
         </div>
 
         <div
-          v-else-if="historyStore.history.length === 0"
+          v-else-if="filteredHistory.length === 0"
           class="history-state"
         >
-          此經銷商目前沒有團隊關係歷史。
+          目前沒有符合篩選條件的團隊關係歷史。
         </div>
 
         <div
@@ -553,7 +615,7 @@
 
             <tbody>
               <tr
-                v-for="item in historyStore.history"
+                v-for="item in filteredHistory"
                 :key="item.id"
               >
                 <td>
@@ -657,12 +719,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  computed,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-} from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import {
   useDealerPerformanceStore,
@@ -703,6 +760,142 @@ const relationStore =
 
 const historyStore =
   useDealerTeamRelationHistoryStore()
+
+const historyKeyword = ref('')
+const historyStatus = ref<
+  'all' | 'active' | 'terminated'
+>('all')
+const historyOperatorKeyword = ref('')
+const historyDateFrom = ref('')
+const historyDateTo = ref('')
+
+const normalizeHistoryText = (
+  value: string | null | undefined,
+): string =>
+  (value ?? '')
+    .trim()
+    .toLowerCase()
+
+const isHistoryDateInRange = (
+  value: string | null | undefined,
+): boolean => {
+  if (!historyDateFrom.value && !historyDateTo.value) {
+    return true
+  }
+
+  if (!value) {
+    return false
+  }
+
+  const current = new Date(value)
+
+  if (Number.isNaN(current.getTime())) {
+    return false
+  }
+
+  if (historyDateFrom.value) {
+    const from = new Date(
+      `${historyDateFrom.value}T00:00:00`,
+    )
+
+    if (current < from) {
+      return false
+    }
+  }
+
+  if (historyDateTo.value) {
+    const to = new Date(
+      `${historyDateTo.value}T23:59:59.999`,
+    )
+
+    if (current > to) {
+      return false
+    }
+  }
+
+  return true
+}
+
+const filteredHistory = computed(() => {
+  const keyword =
+    normalizeHistoryText(
+      historyKeyword.value,
+    )
+
+  const operatorKeyword =
+    normalizeHistoryText(
+      historyOperatorKeyword.value,
+    )
+
+  return historyStore.history.filter(
+    (item) => {
+      if (
+        historyStatus.value !== 'all'
+        && item.status !== historyStatus.value
+      ) {
+        return false
+      }
+
+      if (
+        !isHistoryDateInRange(
+          item.joinedAt,
+        )
+      ) {
+        return false
+      }
+
+      if (keyword) {
+        const searchableText = [
+          item.dealerNo,
+          item.dealerName,
+          item.parentDealerNo,
+          item.parentDealerName,
+          item.remark,
+        ]
+          .map(normalizeHistoryText)
+          .join(' ')
+
+        if (
+          !searchableText.includes(
+            keyword,
+          )
+        ) {
+          return false
+        }
+      }
+
+      if (operatorKeyword) {
+        const operatorText = [
+          item.operatorName,
+          item.operatorEmail,
+          item.endedOperatorName,
+          item.endedOperatorEmail,
+        ]
+          .map(normalizeHistoryText)
+          .join(' ')
+
+        if (
+          !operatorText.includes(
+            operatorKeyword,
+          )
+        ) {
+          return false
+        }
+      }
+
+      return true
+    },
+  )
+})
+
+const clearHistoryFilters = (): void => {
+  historyKeyword.value = ''
+  historyStatus.value = 'all'
+  historyOperatorKeyword.value = ''
+  historyDateFrom.value = ''
+  historyDateTo.value = ''
+}
+
 
 
 const authStore =
@@ -1653,6 +1846,83 @@ onBeforeUnmount(() => {
 ) {
   .history-panel__header {
     flex-direction: column;
+  }
+}
+
+
+
+.history-filters {
+  display: grid;
+  grid-template-columns:
+    minmax(180px, 1.4fr)
+    minmax(130px, 0.8fr)
+    minmax(180px, 1.2fr)
+    minmax(145px, 0.8fr)
+    minmax(145px, 0.8fr)
+    auto;
+  gap: 12px;
+  align-items: end;
+  margin: 18px 0 20px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.history-filter {
+  display: grid;
+  gap: 6px;
+}
+
+.history-filter span {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.history-filter input,
+.history-filter select {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid #dbe2ea;
+  border-radius: 9px;
+  background: #fff;
+  color: #0f172a;
+  font: inherit;
+}
+
+.history-filter input:focus,
+.history-filter select:focus {
+  outline: none;
+  border-color: #94a3b8;
+}
+
+.history-filter-clear {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  background: #fff;
+  color: #334155;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.history-filter-clear:hover {
+  background: #f1f5f9;
+}
+
+@media (max-width: 1100px) {
+  .history-filters {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .history-filters {
+    grid-template-columns: 1fr;
   }
 }
 
