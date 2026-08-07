@@ -148,6 +148,34 @@ export interface MerchantDetailResponse {
   error?: string
 }
 
+export interface MerchantCreateInput {
+  name: string
+
+  legalName?: string | null
+
+  merchantType:
+    MerchantType
+
+  market:
+    MerchantMarket
+
+  contactName?: string | null
+
+  contactPhone?: string | null
+
+  contactEmail?: string | null
+
+  businessLicenseNo?: string | null
+
+  taxNo?: string | null
+
+  address?: string | null
+
+  logoUrl?: string | null
+
+  description?: string | null
+}
+
 export interface MerchantReviewInput {
   merchantId: string
 

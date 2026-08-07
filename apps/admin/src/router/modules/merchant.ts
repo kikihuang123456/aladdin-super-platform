@@ -17,6 +17,31 @@ const merchantRoutes: RouteRecordRaw[] = [
     },
   },
   {
+    path:
+      '/merchants/create',
+
+    name:
+      'MerchantCreate',
+
+    component:
+      () =>
+        import(
+          '../../views/merchant/MerchantCreateView.vue'
+        ),
+
+    meta: {
+      title:
+        '新增商家',
+
+      requiresAuth:
+        true,
+
+      permission:
+        'merchant.create',
+    },
+  },
+
+  {
   path:
     '/merchants/:id',
 

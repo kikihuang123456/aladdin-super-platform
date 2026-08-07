@@ -12,6 +12,7 @@ import {
 
 import type {
   Merchant,
+  MerchantCreateInput,
   MerchantDetailResponse,
   MerchantFilters,
   MerchantListResponse,
@@ -238,6 +239,131 @@ function mapMerchant(
 // =================================
 // 商家列表
 // =================================
+
+// =================================
+// 新增商家
+// =================================
+
+export async function createMerchant(
+  input:
+    MerchantCreateInput,
+): Promise<MerchantMutationResponse> {
+  const normalizedName =
+    input.name.trim()
+
+  if (!normalizedName) {
+    return {
+      success:
+        false,
+
+      message:
+        '商家名稱不可空白。',
+
+      error:
+        '商家名稱不可空白。',
+    }
+  }
+
+  try {
+    const {
+      data,
+      error,
+    } =
+      await supabase.rpc(
+        'create_merchant',
+        {
+          p_name:
+            normalizedName,
+
+          p_legal_name:
+            input.legalName?.trim() ||
+            null,
+
+          p_merchant_type:
+            input.merchantType,
+
+          p_market:
+            input.market,
+
+          p_contact_name:
+            input.contactName?.trim() ||
+            null,
+
+          p_contact_phone:
+            input.contactPhone?.trim() ||
+            null,
+
+          p_contact_email:
+            input.contactEmail?.trim() ||
+            null,
+
+          p_business_license_no:
+            input.businessLicenseNo?.trim() ||
+            null,
+
+          p_tax_no:
+            input.taxNo?.trim() ||
+            null,
+
+          p_address:
+            input.address?.trim() ||
+            null,
+
+          p_logo_url:
+            input.logoUrl?.trim() ||
+            null,
+
+          p_description:
+            input.description?.trim() ||
+            null,
+        },
+      )
+
+    if (error) {
+      throw error
+    }
+
+    const row =
+      Array.isArray(data)
+        ? data[0]
+        : data
+
+    if (!row) {
+      throw new Error(
+        '新增商家成功，但未取得商家資料。',
+      )
+    }
+
+    return {
+      success:
+        true,
+
+      merchant:
+        mapMerchant(
+          row as MerchantRow,
+        ),
+
+      message:
+        '商家新增成功，已進入待審核狀態。',
+    }
+  } catch (
+    errorValue
+  ) {
+    return {
+      success:
+        false,
+
+      message:
+        '商家新增失敗。',
+
+      error:
+        errorValue instanceof Error
+          ? errorValue.message
+          : '商家新增發生未知錯誤。',
+    }
+  }
+}
+
 
 export async function getMerchants(
   filters:

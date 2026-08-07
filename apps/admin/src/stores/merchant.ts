@@ -6,6 +6,8 @@
  * Pinia Store
  */
 
+import type { MerchantCreateInput } from '../types/merchant'
+import { createMerchant as createMerchantApi } from '../api/merchant'
 import {
   computed,
   ref,
@@ -574,8 +576,26 @@ export const useMerchantStore =
         mutationMessage.value =
           null
       }
+  // =================================
+  // 新增商家
+  // =================================
+
+  async function createMerchant(
+    input:
+      MerchantCreateInput,
+  ) {
+    return await createMerchantApi(
+      input,
+    )
+  }
+
+
 
       return {
+
+
+
+        createMerchant,
         merchants,
         currentMerchant,
         filters,
