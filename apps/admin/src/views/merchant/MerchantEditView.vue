@@ -292,6 +292,27 @@
         </div>
 
         <div class="form-grid">
+        <label class="field field-wide">
+  <span>
+    上傳 Logo
+  </span>
+
+  <input
+    type="file"
+    accept="image/jpeg,image/png,image/webp"
+    :disabled="uploadingLogo"
+    @change="handleLogoFileChange"
+  />
+
+  <small class="field-help">
+    {{
+      uploadingLogo
+        ? 'Logo 上傳中...'
+        : '支援 JPEG、PNG、WebP，最大 5MB。'
+    }}
+  </small>
+</label>
+
           <label class="field field-wide">
             <span>
               Logo URL
@@ -334,7 +355,26 @@
               Logo 圖片無法載入。請確認網址是否為可公開存取的圖片 URL。
             </p>
           </div>
+          <label class="field field-wide">
+  <span>
+    上傳商家封面
+  </span>
 
+  <input
+    type="file"
+    accept="image/jpeg,image/png,image/webp"
+    :disabled="uploadingCover"
+    @change="handleCoverFileChange"
+  />
+
+  <small class="field-help">
+    {{
+      uploadingCover
+        ? '封面上傳中...'
+        : '支援 JPEG、PNG、WebP，最大 5MB。'
+    }}
+  </small>
+</label>
           <label class="field field-wide">
             <span>
               商家封面 URL
@@ -475,6 +515,10 @@ import {
 } from '../../api/merchant'
 
 import {
+  uploadMerchantImage,
+} from '../../api/merchant-media'
+
+import {
   useMerchantStore,
 } from '../../stores/merchant'
 
@@ -512,6 +556,12 @@ const logoPreviewError =
 const coverPreviewError =
   ref(false)
 
+const uploadingLogo =
+  ref(false)
+
+const uploadingCover =
+  ref(false)
+  
 const merchantId =
   computed(() =>
     String(
@@ -700,6 +750,122 @@ function handleCoverError(): void {
 function handleCoverLoad(): void {
   coverPreviewError.value =
     false
+}
+
+async function handleLogoFileChange(
+  event:
+    Event,
+): Promise<void> {
+  const input =
+    event.target as HTMLInputElement
+
+  const file =
+    input.files?.[0]
+
+  if (!file) {
+    return
+  }
+
+  if (!merchantId.value) {
+    errorMessage.value =
+      '缺少商家 ID，無法上傳 Logo。'
+
+    return
+  }
+
+  uploadingLogo.value =
+    true
+
+  errorMessage.value =
+    ''
+
+  try {
+    const result =
+      await uploadMerchantImage({
+        merchantId:
+          merchantId.value,
+
+        file,
+
+        type:
+          'logo',
+      })
+
+    form.logoUrl =
+      result.publicUrl
+
+    logoPreviewError.value =
+      false
+  } catch (errorValue) {
+    errorMessage.value =
+      errorValue instanceof Error
+        ? errorValue.message
+        : 'Logo 上傳失敗。'
+  } finally {
+    uploadingLogo.value =
+      false
+
+    input.value =
+      ''
+  }
+}
+
+async function handleCoverFileChange(
+  event:
+    Event,
+): Promise<void> {
+  const input =
+    event.target as HTMLInputElement
+
+  const file =
+    input.files?.[0]
+
+  if (!file) {
+    return
+  }
+
+  if (!merchantId.value) {
+    errorMessage.value =
+      '缺少商家 ID，無法上傳封面。'
+
+    return
+  }
+
+  uploadingCover.value =
+    true
+
+  errorMessage.value =
+    ''
+
+  try {
+    const result =
+      await uploadMerchantImage({
+        merchantId:
+          merchantId.value,
+
+        file,
+
+        type:
+          'cover',
+      })
+
+    form.coverImageUrl =
+      result.publicUrl
+
+    coverPreviewError.value =
+      false
+  } catch (errorValue) {
+    errorMessage.value =
+      errorValue instanceof Error
+        ? errorValue.message
+        : '商家封面上傳失敗。'
+  } finally {
+    uploadingCover.value =
+      false
+
+    input.value =
+      ''
+  }
 }
 
 async function handleSubmit():

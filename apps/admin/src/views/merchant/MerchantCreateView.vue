@@ -51,6 +51,27 @@
 
         <div class="form-grid">
           <label class="field field-wide">
+  <span>
+    上傳 Logo
+  </span>
+
+  <input
+    type="file"
+    accept="image/jpeg,image/png,image/webp"
+    :disabled="submitting"
+    @change="handleLogoFileChange"
+  />
+
+  <small class="field-help">
+    支援 JPEG、PNG、WebP，最大 5MB。
+    {{
+      logoFileName
+        ? `已選擇：${logoFileName}`
+        : ''
+    }}
+  </small>
+</label>
+          <label class="field field-wide">
             <span>
               商家名稱
               <b>*</b>
@@ -262,6 +283,27 @@
             />
           </label>
           <label class="field field-wide">
+  <span>
+    上傳商家封面
+  </span>
+
+  <input
+    type="file"
+    accept="image/jpeg,image/png,image/webp"
+    :disabled="submitting"
+    @change="handleCoverFileChange"
+  />
+
+  <small class="field-help">
+    支援 JPEG、PNG、WebP，最大 5MB。
+    {{
+      coverFileName
+        ? `已選擇：${coverFileName}`
+        : ''
+    }}
+  </small>
+</label>
+          <label class="field field-wide">
             <span>
               商家封面 URL
             </span>
@@ -362,6 +404,14 @@ import type {
   MerchantCreateInput,
 } from '../../types/merchant'
 
+import {
+  updateMerchantProfile,
+} from '../../api/merchant'
+
+import {
+  uploadMerchantImage,
+} from '../../api/merchant-media'
+
 const router =
   useRouter()
 
@@ -370,6 +420,18 @@ const merchantStore =
 
 const submitting =
   ref(false)
+ 
+const logoFile =
+  ref<File | null>(null)
+
+const coverFile =
+  ref<File | null>(null)
+
+const logoFileName =
+  ref('')
+
+const coverFileName =
+  ref('') 
 
 const errorMessage =
   ref('')
@@ -422,12 +484,45 @@ const form =
     description:
       '',
   })
+function handleLogoFileChange(
+  event:
+    Event,
+): void {
+  const input =
+    event.target as HTMLInputElement
 
+  const file =
+    input.files?.[0] ?? null
+
+  logoFile.value =
+    file
+
+  logoFileName.value =
+    file?.name ?? ''
+}
+
+function handleCoverFileChange(
+  event:
+    Event,
+): void {
+  const input =
+    event.target as HTMLInputElement
+
+  const file =
+    input.files?.[0] ?? null
+
+  coverFile.value =
+    file
+
+  coverFileName.value =
+    file?.name ?? ''
+}
 function handleBack(): void {
   router.push(
     '/merchants',
   )
 }
+
 
 async function handleSubmit():
   Promise<void> {
@@ -452,38 +547,149 @@ async function handleSubmit():
 
   try {
     const result =
-      await merchantStore.createMerchant({
-        ...form,
+  await merchantStore.createMerchant({
+    ...form,
 
-        name:
-          normalizedName,
+    name:
+      normalizedName,
+  })
+
+if (
+  !result.success ||
+  !result.merchant
+) {
+  errorMessage.value =
+    result.error ||
+    result.message ||
+    '商家建立失敗。'
+
+  return
+}
+
+const createdMerchant =
+  result.merchant
+
+let finalLogoUrl =
+  form.logoUrl?.trim() ||
+  null
+
+let finalCoverImageUrl =
+  form.coverImageUrl?.trim() ||
+  null
+
+try {
+  if (logoFile.value) {
+    const logoUpload =
+      await uploadMerchantImage({
+        merchantId:
+          createdMerchant.id,
+
+        file:
+          logoFile.value,
+
+        type:
+          'logo',
       })
 
-    if (!result.success) {
-      errorMessage.value =
-        result.error ||
-        result.message ||
-        '商家建立失敗。'
+    finalLogoUrl =
+      logoUpload.publicUrl
+  }
 
-      return
-    }
+  if (coverFile.value) {
+    const coverUpload =
+      await uploadMerchantImage({
+        merchantId:
+          createdMerchant.id,
 
-    successMessage.value =
-      result.message
+        file:
+          coverFile.value,
 
-    if (
-      result.merchant?.id
-    ) {
-      await router.push(
-        `/merchants/${result.merchant.id}`,
+        type:
+          'cover',
+      })
+
+    finalCoverImageUrl =
+      coverUpload.publicUrl
+  }
+
+  if (
+    logoFile.value ||
+    coverFile.value
+  ) {
+    const updateResult =
+      await updateMerchantProfile({
+        merchantId:
+          createdMerchant.id,
+
+        name:
+          createdMerchant.name,
+
+        legalName:
+          createdMerchant.legalName,
+
+        merchantType:
+          createdMerchant.merchantType,
+
+        market:
+          createdMerchant.market,
+
+        contactName:
+          createdMerchant.contactName,
+
+        contactPhone:
+          createdMerchant.contactPhone,
+
+        contactEmail:
+          createdMerchant.contactEmail,
+
+        businessLicenseNo:
+          createdMerchant.businessLicenseNo,
+
+        taxNo:
+          createdMerchant.taxNo,
+
+        address:
+          createdMerchant.address,
+
+        logoUrl:
+          finalLogoUrl,
+
+        coverImageUrl:
+          finalCoverImageUrl,
+
+        websiteUrl:
+          createdMerchant.websiteUrl,
+
+        description:
+          createdMerchant.description,
+      })
+
+    if (!updateResult.success) {
+      throw new Error(
+        updateResult.error ||
+        updateResult.message ||
+        '商家已建立，但圖片網址寫入失敗。',
       )
-
-      return
     }
+  }
 
-    await router.push(
-      '/merchants',
-    )
+  successMessage.value =
+    '商家建立成功。'
+
+  await router.push(
+    `/merchants/${createdMerchant.id}`,
+  )
+
+  return
+} catch (mediaError) {
+  errorMessage.value =
+    mediaError instanceof Error
+      ? `商家已建立，但圖片處理失敗：${mediaError.message}`
+      : '商家已建立，但圖片處理失敗。'
+
+  return
+}
+
   } catch (
     errorValue
   ) {
