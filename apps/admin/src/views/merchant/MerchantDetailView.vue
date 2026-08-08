@@ -2,28 +2,44 @@
   <AdminLayout>
     <div class="merchant-detail">
       <section class="page-header">
-        <div>
-          <p class="page-eyebrow">
-            MERCHANT ERP
-          </p>
+  <div>
+    <p class="page-eyebrow">
+      MERCHANT ERP
+    </p>
 
-          <h1>
-            商家詳情
-          </h1>
+    <h1>
+      商家詳情
+    </h1>
 
-          <p class="page-description">
-            檢視商家基本資料、公司資訊、聯絡方式與審核狀態。
-          </p>
-        </div>
+    <p class="page-description">
+      檢視商家基本資料、公司資訊、聯絡方式與審核狀態。
+    </p>
+  </div>
 
-        <button
-          class="back-button"
-          type="button"
-          @click="handleBack"
-        >
-          返回列表
-        </button>
-      </section>
+  <div class="header-actions">
+    <button
+      v-if="
+        merchant &&
+        permissionStore.hasPermission(
+          'merchant.update',
+        )
+      "
+      class="edit-button"
+      type="button"
+      @click="handleEdit"
+    >
+      編輯商家
+    </button>
+
+    <button
+      class="back-button"
+      type="button"
+      @click="handleBack"
+    >
+      返回列表
+    </button>
+  </div>
+</section>
 
       <div
         v-if="store.isLoading"
@@ -496,7 +512,16 @@ function handleBack():
     '/merchants',
   )
 }
+function handleEdit():
+  void {
+  if (!merchant.value) {
+    return
+  }
 
+  router.push(
+    `/merchants/${merchant.value.id}/edit`,
+  )
+}
 async function handleReview(
   status:
     MerchantReviewInput['status'],
@@ -689,7 +714,28 @@ function formatDate(
   color: #64748b;
   line-height: 1.7;
 }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
 
+.edit-button {
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid #3157d6;
+  border-radius: 10px;
+  background: #3157d6;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.edit-button:hover {
+  background: #2748b8;
+}
 .back-button {
   min-height: 42px;
   padding: 0 18px;
@@ -944,6 +990,12 @@ function formatDate(
     flex-direction: column;
   }
 
+  .header-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .edit-button,
   .back-button {
     width: 100%;
   }

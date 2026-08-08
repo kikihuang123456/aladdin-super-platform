@@ -21,6 +21,7 @@ import type {
   MerchantReviewInput,
   MerchantStatistics,
   MerchantStatusUpdateInput,
+  MerchantUpdateInput,
 } from '../types/merchant'
 
 const MERCHANT_TABLE =
@@ -401,7 +402,149 @@ export async function createMerchant(
     }
   }
 }
+export async function updateMerchantProfile(
+  input:
+    MerchantUpdateInput,
+): Promise<MerchantMutationResponse> {
+  const normalizedName =
+    input.name.trim()
 
+  if (!input.merchantId) {
+    return {
+      success:
+        false,
+
+      message:
+        '缺少商家 ID。',
+
+      error:
+        '缺少商家 ID。',
+    }
+  }
+
+  if (!normalizedName) {
+    return {
+      success:
+        false,
+
+      message:
+        '商家名稱不可空白。',
+
+      error:
+        '商家名稱不可空白。',
+    }
+  }
+
+  try {
+    const {
+      data,
+      error,
+    } =
+      await supabase.rpc(
+        'update_merchant_profile',
+        {
+          p_merchant_id:
+            input.merchantId,
+
+          p_name:
+            normalizedName,
+
+          p_legal_name:
+            input.legalName?.trim() ||
+            null,
+
+          p_merchant_type:
+            input.merchantType,
+
+          p_market:
+            input.market,
+
+          p_contact_name:
+            input.contactName?.trim() ||
+            null,
+
+          p_contact_phone:
+            input.contactPhone?.trim() ||
+            null,
+
+          p_contact_email:
+            input.contactEmail?.trim() ||
+            null,
+
+          p_business_license_no:
+            input.businessLicenseNo?.trim() ||
+            null,
+
+          p_tax_no:
+            input.taxNo?.trim() ||
+            null,
+
+          p_address:
+            input.address?.trim() ||
+            null,
+
+          p_logo_url:
+            input.logoUrl?.trim() ||
+            null,
+
+          p_cover_image_url:
+            input.coverImageUrl?.trim() ||
+            null,
+
+          p_website_url:
+            input.websiteUrl?.trim() ||
+            null,
+
+          p_description:
+            input.description?.trim() ||
+            null,
+        },
+      )
+
+    if (error) {
+      throw error
+    }
+
+    const row =
+      Array.isArray(data)
+        ? data[0]
+        : data
+
+    if (!row) {
+      throw new Error(
+        '商家資料更新成功，但未取得更新後資料。',
+      )
+    }
+
+    return {
+      success:
+        true,
+
+      merchant:
+        mapMerchant(
+          row as MerchantRow,
+        ),
+
+      message:
+        '商家資料更新成功。',
+    }
+  } catch (
+    errorValue
+  ) {
+    return {
+      success:
+        false,
+
+      message:
+        '商家資料更新失敗。',
+
+      error:
+        errorValue instanceof Error
+          ? errorValue.message
+          : '更新商家資料時發生未知錯誤。',
+    }
+  }
+}
 
 export async function getMerchants(
   filters:

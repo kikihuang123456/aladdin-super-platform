@@ -225,3 +225,36 @@ export interface MerchantMutationResponse {
 
   error?: string
 }
+export interface MerchantUpdateInput {
+  merchantId: string
+
+  name: string
+
+  legalName?: string | null
+
+  merchantType:
+    MerchantType
+
+  market:
+    MerchantMarket
+
+  contactName?: string | null
+
+  contactPhone?: string | null
+
+  contactEmail?: string | null
+
+  businessLicenseNo?: string | null
+
+  taxNo?: string | null
+
+  address?: string | null
+
+  logoUrl?: string | null
+
+  coverImageUrl?: string | null
+
+  websiteUrl?: string | null
+
+  description?: string | null
+}

@@ -42,6 +42,31 @@ const merchantRoutes: RouteRecordRaw[] = [
   },
 
   {
+    path:
+      '/merchants/:id/edit',
+
+    name:
+      'MerchantEdit',
+
+    component:
+      () =>
+        import(
+          '../../views/merchant/MerchantEditView.vue'
+        ),
+
+    meta: {
+      title:
+        '編輯商家',
+
+      requiresAuth:
+        true,
+
+      permission:
+        'merchant.update',
+    },
+  },
+
+  {
   path:
     '/merchants/:id',
 
