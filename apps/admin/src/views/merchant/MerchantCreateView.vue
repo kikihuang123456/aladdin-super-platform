@@ -261,6 +261,33 @@
               placeholder="https://..."
             />
           </label>
+          <label class="field field-wide">
+            <span>
+              商家封面 URL
+            </span>
+
+            <input
+              v-model="form.coverImageUrl"
+              type="url"
+              maxlength="500"
+              placeholder="https://example.com/merchant-cover.jpg"
+            />
+          </label>
+
+          <label class="field field-wide">
+            <span>
+              商家官網／上架網址
+            </span>
+
+            <input
+              v-model="form.websiteUrl"
+              type="url"
+              maxlength="500"
+              placeholder="https://example.com"
+            />
+          </label>
+
+
 
           <label class="field field-wide">
             <span>
@@ -384,6 +411,13 @@ const form =
 
     logoUrl:
       '',
+
+    coverImageUrl:
+      '',
+
+    websiteUrl:
+      '',
+
 
     description:
       '',

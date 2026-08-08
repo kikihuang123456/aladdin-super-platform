@@ -54,6 +54,10 @@ export interface Merchant {
 
   logoUrl?: string | null
 
+  coverImageUrl?: string | null
+
+  websiteUrl?: string | null
+
   description?: string | null
 
   status:
@@ -66,6 +70,12 @@ export interface Merchant {
   reviewRemark?: string | null
 
   activatedAt?: string | null
+
+  archivedAt?: string | null
+
+  archivedBy?: string | null
+
+  deletedAt?: string | null
 
   createdAt: string
 
@@ -172,6 +182,10 @@ export interface MerchantCreateInput {
   address?: string | null
 
   logoUrl?: string | null
+
+  coverImageUrl?: string | null
+
+  websiteUrl?: string | null
 
   description?: string | null
 }

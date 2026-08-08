@@ -43,12 +43,17 @@ interface MerchantRow {
   tax_no?: unknown
   address?: unknown
   logo_url?: unknown
+  cover_image_url?: unknown
+  website_url?: unknown
   description?: unknown
   status?: unknown
   reviewed_by?: unknown
   reviewed_at?: unknown
   review_remark?: unknown
   activated_at?: unknown
+  archived_at?: unknown
+  archived_by?: unknown
+  deleted_at?: unknown
   created_at?: unknown
   updated_at?: unknown
 }
@@ -194,6 +199,16 @@ function mapMerchant(
         row.logo_url,
       ),
 
+    coverImageUrl:
+      normalizeNullableString(
+        row.cover_image_url,
+      ),
+
+    websiteUrl:
+      normalizeNullableString(
+        row.website_url,
+      ),
+
     description:
       normalizeNullableString(
         row.description,
@@ -223,6 +238,21 @@ function mapMerchant(
     activatedAt:
       normalizeNullableString(
         row.activated_at,
+      ),
+
+    archivedAt:
+      normalizeNullableString(
+        row.archived_at,
+      ),
+
+    archivedBy:
+      normalizeNullableString(
+        row.archived_by,
+      ),
+
+    deletedAt:
+      normalizeNullableString(
+        row.deleted_at,
       ),
 
     createdAt:
@@ -311,6 +341,14 @@ export async function createMerchant(
 
           p_logo_url:
             input.logoUrl?.trim() ||
+            null,
+
+          p_cover_image_url:
+            input.coverImageUrl?.trim() ||
+            null,
+
+          p_website_url:
+            input.websiteUrl?.trim() ||
             null,
 
           p_description:
