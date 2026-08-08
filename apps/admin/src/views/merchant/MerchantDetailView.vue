@@ -2,44 +2,46 @@
   <AdminLayout>
     <div class="merchant-detail">
       <section class="page-header">
-  <div>
-    <p class="page-eyebrow">
-      MERCHANT ERP
-    </p>
+        <div>
+          <p class="page-eyebrow">
+            MERCHANT ERP
+          </p>
 
-    <h1>
-      商家詳情
-    </h1>
+          <h1>
+            商家詳情
+          </h1>
 
-    <p class="page-description">
-      檢視商家基本資料、公司資訊、聯絡方式與審核狀態。
-    </p>
-  </div>
+          <p class="page-description">
+            檢視商家基本資料、公司資訊、聯絡方式與審核狀態。
+          </p>
+        </div>
 
-  <div class="header-actions">
-    <button
-      v-if="
-        merchant &&
-        permissionStore.hasPermission(
-          'merchant.update',
-        )
-      "
-      class="edit-button"
-      type="button"
-      @click="handleEdit"
-    >
-      編輯商家
-    </button>
+        <div class="header-actions">
+          <button
+            v-if="
+              merchant &&
+              !merchant.deletedAt &&
+              permissionStore.hasPermission(
+                'merchant.update',
+              )
+            "
+            class="edit-button"
+            type="button"
+            :disabled="store.isMutating"
+            @click="handleEdit"
+          >
+            編輯商家
+          </button>
 
-    <button
-      class="back-button"
-      type="button"
-      @click="handleBack"
-    >
-      返回列表
-    </button>
-  </div>
-</section>
+          <button
+            class="back-button"
+            type="button"
+            @click="handleBack"
+          >
+            返回列表
+          </button>
+        </div>
+      </section>
 
       <div
         v-if="store.isLoading"
@@ -56,6 +58,42 @@
       </div>
 
       <template v-else-if="merchant">
+        <div
+          v-if="merchant.deletedAt"
+          class="deleted-notice"
+        >
+          <strong>
+            此商家已刪除
+          </strong>
+
+          <span>
+            刪除時間：
+            {{
+              formatDate(
+                merchant.deletedAt,
+              )
+            }}
+          </span>
+        </div>
+
+        <div
+          v-else-if="merchant.archivedAt"
+          class="archived-notice"
+        >
+          <strong>
+            此商家目前已封存
+          </strong>
+
+          <span>
+            封存時間：
+            {{
+              formatDate(
+                merchant.archivedAt,
+              )
+            }}
+          </span>
+        </div>
+
         <section class="summary-grid">
           <article class="summary-card">
             <span>
@@ -300,6 +338,34 @@
               </strong>
             </div>
 
+            <div>
+              <span>
+                封存時間
+              </span>
+
+              <strong>
+                {{
+                  formatDate(
+                    merchant.archivedAt,
+                  )
+                }}
+              </strong>
+            </div>
+
+            <div>
+              <span>
+                刪除時間
+              </span>
+
+              <strong>
+                {{
+                  formatDate(
+                    merchant.deletedAt,
+                  )
+                }}
+              </strong>
+            </div>
+
             <div class="full">
               <span>
                 審核備註
@@ -312,7 +378,10 @@
           </div>
         </section>
 
-        <section class="action-card">
+        <section
+          v-if="!merchant.deletedAt"
+          class="action-card"
+        >
           <h2>
             商家操作
           </h2>
@@ -332,6 +401,7 @@
           <div class="button-group">
             <button
               v-if="
+                !merchant.archivedAt &&
                 merchant.status === 'pending' &&
                 permissionStore.hasPermission(
                   'merchant.approve',
@@ -347,6 +417,7 @@
 
             <button
               v-if="
+                !merchant.archivedAt &&
                 merchant.status === 'pending' &&
                 permissionStore.hasPermission(
                   'merchant.approve',
@@ -362,6 +433,7 @@
 
             <button
               v-if="
+                !merchant.archivedAt &&
                 merchant.status !== 'active' &&
                 permissionStore.hasPermission(
                   'merchant.update',
@@ -377,6 +449,7 @@
 
             <button
               v-if="
+                !merchant.archivedAt &&
                 merchant.status === 'active' &&
                 permissionStore.hasPermission(
                   'merchant.update',
@@ -392,6 +465,7 @@
 
             <button
               v-if="
+                !merchant.archivedAt &&
                 merchant.status !== 'disabled' &&
                 permissionStore.hasPermission(
                   'merchant.update',
@@ -407,6 +481,71 @@
           </div>
 
           <div
+            v-if="
+              permissionStore.hasPermission(
+                'merchant.update',
+              )
+            "
+            class="lifecycle-section"
+          >
+            <div class="lifecycle-heading">
+              <div>
+                <h3>
+                  商家生命週期
+                </h3>
+
+                <p>
+                  封存可恢復；刪除採 Soft Delete，
+                  不會直接移除正式資料。
+                </p>
+              </div>
+            </div>
+
+            <div class="lifecycle-buttons">
+              <button
+                v-if="!merchant.archivedAt"
+                class="archive-button"
+                type="button"
+                :disabled="store.isMutating"
+                @click="handleArchive"
+              >
+                {{
+                  store.isMutating
+                    ? '處理中...'
+                    : '封存商家'
+                }}
+              </button>
+
+              <button
+                v-else
+                class="restore-button"
+                type="button"
+                :disabled="store.isMutating"
+                @click="handleRestore"
+              >
+                {{
+                  store.isMutating
+                    ? '處理中...'
+                    : '恢復商家'
+                }}
+              </button>
+
+              <button
+                class="delete-button"
+                type="button"
+                :disabled="store.isMutating"
+                @click="handleSoftDelete"
+              >
+                {{
+                  store.isMutating
+                    ? '處理中...'
+                    : '刪除商家'
+                }}
+              </button>
+            </div>
+          </div>
+
+          <div
             v-if="store.mutationMessage"
             class="success-panel"
           >
@@ -417,6 +556,7 @@
     </div>
   </AdminLayout>
 </template>
+
 <script setup lang="ts">
 import {
   computed,
@@ -512,6 +652,7 @@ function handleBack():
     '/merchants',
   )
 }
+
 function handleEdit():
   void {
   if (!merchant.value) {
@@ -522,6 +663,7 @@ function handleEdit():
     `/merchants/${merchant.value.id}/edit`,
   )
 }
+
 async function handleReview(
   status:
     MerchantReviewInput['status'],
@@ -560,6 +702,97 @@ async function handleStatusUpdate(
       remark.value.trim() ||
       null,
   })
+}
+
+async function handleArchive():
+  Promise<void> {
+  if (!merchant.value) {
+    return
+  }
+
+  const confirmed =
+    window.confirm(
+      `確定要封存商家「${merchant.value.name}」嗎？\n\n封存後商家資料仍會保留，之後可以恢復。`,
+    )
+
+  if (!confirmed) {
+    return
+  }
+
+  const success =
+    await store.archiveMerchantRequest(
+      merchant.value.id,
+    )
+
+  if (!success) {
+    return
+  }
+}
+
+async function handleRestore():
+  Promise<void> {
+  if (!merchant.value) {
+    return
+  }
+
+  const confirmed =
+    window.confirm(
+      `確定要恢復商家「${merchant.value.name}」嗎？`,
+    )
+
+  if (!confirmed) {
+    return
+  }
+
+  const success =
+    await store.restoreMerchantRequest(
+      merchant.value.id,
+    )
+
+  if (!success) {
+    return
+  }
+}
+
+async function handleSoftDelete():
+  Promise<void> {
+  if (!merchant.value) {
+    return
+  }
+
+  const merchantName =
+    merchant.value.name
+
+  const firstConfirm =
+    window.confirm(
+      `確定要刪除商家「${merchantName}」嗎？\n\n此操作會將商家標記為已刪除。`,
+    )
+
+  if (!firstConfirm) {
+    return
+  }
+
+  const secondConfirm =
+    window.confirm(
+      `再次確認：真的要刪除「${merchantName}」嗎？\n\n這是 Soft Delete，資料會保留於資料庫，但一般商家流程將不再使用此筆資料。`,
+    )
+
+  if (!secondConfirm) {
+    return
+  }
+
+  const success =
+    await store.softDeleteMerchantRequest(
+      merchant.value.id,
+    )
+
+  if (!success) {
+    return
+  }
+
+  await router.push(
+    '/merchants',
+  )
 }
 
 function merchantTypeText(
@@ -680,6 +913,7 @@ function formatDate(
   )
 }
 </script>
+
 <style scoped>
 .merchant-detail {
   display: flex;
@@ -714,6 +948,7 @@ function formatDate(
   color: #64748b;
   line-height: 1.7;
 }
+
 .header-actions {
   display: flex;
   align-items: center;
@@ -736,6 +971,12 @@ function formatDate(
 .edit-button:hover {
   background: #2748b8;
 }
+
+.edit-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .back-button {
   min-height: 42px;
   padding: 0 18px;
@@ -770,6 +1011,37 @@ function formatDate(
   border: 1px solid #fecaca;
   background: #fef2f2;
   color: #b91c1c;
+}
+
+.archived-notice,
+.deleted-notice {
+  display: flex;
+  padding: 16px 18px;
+  border-radius: 14px;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.archived-notice {
+  border: 1px solid #fde68a;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.deleted-notice {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.archived-notice strong,
+.deleted-notice strong {
+  font-size: 16px;
+}
+
+.archived-notice span,
+.deleted-notice span {
+  font-size: 13px;
 }
 
 .summary-grid {
@@ -961,6 +1233,75 @@ function formatDate(
   background: #475569;
 }
 
+.lifecycle-section {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.lifecycle-heading h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 18px;
+}
+
+.lifecycle-heading p {
+  margin: 8px 0 0;
+  color: #64748b;
+  line-height: 1.7;
+}
+
+.lifecycle-buttons {
+  display: flex;
+  margin-top: 18px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.lifecycle-buttons button {
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.lifecycle-buttons button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.archive-button {
+  border: 1px solid #d97706;
+  background: #ffffff;
+  color: #b45309;
+}
+
+.archive-button:hover {
+  background: #fffbeb;
+}
+
+.restore-button {
+  border: 1px solid #16a34a;
+  background: #ffffff;
+  color: #15803d;
+}
+
+.restore-button:hover {
+  background: #f0fdf4;
+}
+
+.delete-button {
+  border: 1px solid #dc2626;
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.delete-button:hover {
+  background: #b91c1c;
+}
+
 .success-panel {
   margin-top: 18px;
   padding: 15px 16px;
@@ -1009,11 +1350,13 @@ function formatDate(
     grid-column: auto;
   }
 
-  .button-group {
+  .button-group,
+  .lifecycle-buttons {
     flex-direction: column;
   }
 
-  .button-group button {
+  .button-group button,
+  .lifecycle-buttons button {
     width: 100%;
   }
 }

@@ -1,7 +1,26 @@
 /**
  * ALADDIN Enterprise V4
  *
- * Merchant ERP
+ * Merchant ERPlet query =
+  supabase
+    .from(
+      MERCHANT_TABLE,
+    )
+    .select(
+      '*',
+      {
+        count:
+          'exact',
+      },
+    )
+    .is(
+      'archived_at',
+      null,
+    )
+    .is(
+      'deleted_at',
+      null,
+    )
  *
  * API Layer
  */
@@ -586,6 +605,14 @@ export async function getMerchants(
               'exact',
           },
         )
+        .is(
+          'archived_at',
+          null,
+        )
+        .is(
+          'deleted_at',
+          null,
+        )
 
     const keyword =
       filters.keyword?.trim() ||
@@ -1058,4 +1085,762 @@ function getMerchantStatusMessage(
     }
 
   return messageMap[status]
+}
+// =================================
+// Merchant Archive / Restore /
+// Soft Delete
+// =================================
+
+export async function archiveMerchant(
+  merchantId: string,
+): Promise<MerchantMutationResponse> {
+  try {
+    const {
+      data,
+      error,
+    } =
+      await supabase.rpc(
+        'archive_merchant',
+        {
+          p_merchant_id:
+            merchantId,
+        },
+      )
+
+    if (error) {
+      throw error
+    }
+
+    const row =
+      Array.isArray(data)
+        ? data[0]
+        : data
+
+    if (!row) {
+      return {
+        success: false,
+        message:
+          '封存商家失敗。',
+        error:
+          'archive_merchant 未回傳商家資料。',
+      }
+    }
+
+    return {
+      success: true,
+      message:
+        '商家已封存。',
+      merchant:
+        mapMerchant(
+  row as MerchantRow,
+)
+    }
+  } catch (errorValue) {
+    const message =
+      errorValue instanceof Error
+        ? errorValue.message
+        : '封存商家時發生未知錯誤。'
+
+    return {
+      success: false,
+      message,
+      error: message,
+    }
+  }
+}
+
+export async function restoreMerchant(
+  merchantId: string,
+): Promise<MerchantMutationResponse> {
+  try {
+    const {
+      data,
+      error,
+    } =
+      await supabase.rpc(
+        'restore_merchant',
+        {
+          p_merchant_id:
+            merchantId,
+        },
+      )
+
+    if (error) {
+      throw error
+    }
+
+    const row =
+      Array.isArray(data)
+        ? data[0]
+        : data
+
+    if (!row) {
+      return {
+        success: false,
+        message:
+          '恢復商家失敗。',
+        error:
+          'restore_merchant 未回傳商家資料。',
+      }
+    }
+
+    return {
+      success: true,
+      message:
+        '商家已恢復。',
+      merchant:
+        mapMerchant(
+  row as MerchantRow,
+)
+    }
+  } catch (errorValue) {
+    const message =
+      errorValue instanceof Error
+        ? errorValue.message
+        : '恢復商家時發生未知錯誤。'
+
+    return {
+      success: false,
+      message,
+      error: message,
+    }
+  }
+}
+
+export async function softDeleteMerchant(
+  merchantId: string,
+): Promise<MerchantMutationResponse> {
+  try {
+    const {
+      data,
+      error,
+    } =
+      await supabase.rpc(
+        'soft_delete_merchant',
+        {
+          p_merchant_id:
+            merchantId,
+        },
+      )
+
+    if (error) {
+      throw error
+    }
+
+    const row =
+      Array.isArray(data)
+        ? data[0]
+        : data
+
+    if (!row) {
+      return {
+        success: false,
+        message:
+          '刪除商家失敗。',
+        error:
+          'soft_delete_merchant 未回傳商家資料。',
+      }
+    }
+
+    return {
+      success: true,
+      message:
+        '商家已刪除。',
+      merchant:
+        mapMerchant(
+  row as MerchantRow,
+)
+    }
+  } catch (errorValue) {
+    const message =
+      errorValue instanceof Error
+        ? errorValue.message
+        : '刪除商家時發生未知錯誤。'
+
+    return {
+      success: false,
+      message,
+      error: message,
+    }
+  }
+}
+// =================================
+// 封存商家列表
+// =================================
+
+export async function getArchivedMerchants(
+  filters:
+    MerchantFilters,
+): Promise<MerchantListResponse> {
+  const page =
+    Number.isInteger(
+      filters.page,
+    ) &&
+    filters.page > 0
+      ? filters.page
+      : 1
+
+  const pageSize =
+    Number.isInteger(
+      filters.pageSize,
+    ) &&
+    filters.pageSize > 0
+      ? filters.pageSize
+      : DEFAULT_PAGE_SIZE
+
+  const from =
+    (page - 1) *
+    pageSize
+
+  const to =
+    from +
+    pageSize -
+    1
+
+  try {
+    let query =
+      supabase
+        .from(
+          MERCHANT_TABLE,
+        )
+        .select(
+          '*',
+          {
+            count:
+              'exact',
+          },
+        )
+        .not(
+          'archived_at',
+          'is',
+          null,
+        )
+        .is(
+          'deleted_at',
+          null,
+        )
+
+    const keyword =
+      filters.keyword?.trim() ||
+      ''
+
+    if (keyword) {
+      query =
+        query.or(
+          [
+            `merchant_no.ilike.%${keyword}%`,
+            `name.ilike.%${keyword}%`,
+            `legal_name.ilike.%${keyword}%`,
+            `contact_name.ilike.%${keyword}%`,
+            `contact_phone.ilike.%${keyword}%`,
+            `contact_email.ilike.%${keyword}%`,
+          ].join(','),
+        )
+    }
+
+    if (
+      filters.merchantType
+    ) {
+      query =
+        query.eq(
+          'merchant_type',
+          filters.merchantType,
+        )
+    }
+
+    if (
+      filters.market
+    ) {
+      query =
+        query.eq(
+          'market',
+          filters.market,
+        )
+    }
+
+    if (
+      filters.status
+    ) {
+      query =
+        query.eq(
+          'status',
+          filters.status,
+        )
+    }
+
+    const {
+      data,
+      error,
+      count,
+    } =
+      await query
+        .order(
+          'archived_at',
+          {
+            ascending:
+              false,
+          },
+        )
+        .range(
+          from,
+          to,
+        )
+
+    if (error) {
+      throw error
+    }
+
+    const merchants =
+      (data ?? []).map(
+        (row) =>
+          mapMerchant(
+            row as MerchantRow,
+          ),
+      )
+
+    const total =
+      count ?? 0
+
+    return {
+      success:
+        true,
+
+      message:
+        '封存商家列表載入成功。',
+
+      merchants,
+
+      statistics:
+        merchants.reduce<
+          MerchantStatistics
+        >(
+          (
+            result,
+            merchant,
+          ) => {
+            result.total += 1
+
+            switch (
+              merchant.status
+            ) {
+              case 'pending':
+                result.pending += 1
+                break
+
+              case 'approved':
+                result.approved += 1
+                break
+
+              case 'active':
+                result.active += 1
+                break
+
+              case 'suspended':
+                result.suspended += 1
+                break
+
+              case 'rejected':
+                result.rejected += 1
+                break
+
+              case 'disabled':
+                result.disabled += 1
+                break
+            }
+
+            switch (
+              merchant.market
+            ) {
+              case 'taiwan':
+                result.taiwan += 1
+                break
+
+              case 'china':
+                result.china += 1
+                break
+
+              case 'cross_border':
+                result.crossBorder += 1
+                break
+            }
+
+            return result
+          },
+          createEmptyStatistics(),
+        ),
+
+      pagination: {
+        page,
+
+        pageSize,
+
+        total,
+
+        totalPages:
+          total === 0
+            ? 0
+            : Math.ceil(
+                total /
+                pageSize,
+              ),
+      },
+    }
+  } catch (
+    errorValue
+  ) 
+  {
+    const message =
+      errorValue instanceof Error
+        ? errorValue.message
+        : '封存商家列表載入失敗。'
+
+    return {
+      success:
+        false,
+
+      message,
+
+      error:
+        message,
+
+      merchants:
+        [],
+
+      statistics:
+        createEmptyStatistics(),
+
+            pagination:
+        createEmptyPagination(),
+    }
+  }
+}
+// =================================
+// 恢復已刪除商家
+// =================================
+
+export async function restoreDeletedMerchant(
+  merchantId:
+    string,
+): Promise<MerchantMutationResponse> {
+  const normalizedId =
+    merchantId.trim()
+
+  if (!normalizedId) {
+    return {
+      success:
+        false,
+
+      message:
+        '商家 ID 不可空白。',
+
+      error:
+        '商家 ID 不可空白。',
+    }
+  }
+
+  try {
+    const {
+      data,
+      error,
+    } =
+      await supabase.rpc(
+        'restore_deleted_merchant',
+        {
+          p_merchant_id:
+            normalizedId,
+        },
+      )
+
+    if (error) {
+      throw error
+    }
+
+    const row =
+      Array.isArray(data)
+        ? data[0]
+        : data
+
+    if (!row) {
+      throw new Error(
+        'restore_deleted_merchant 未回傳商家資料。',
+      )
+    }
+
+    return {
+      success:
+        true,
+
+      message:
+        '已刪除商家恢復成功。',
+
+      merchant:
+        mapMerchant(
+          row as MerchantRow,
+        ),
+    }
+  } catch (
+    errorValue
+  ) {
+    const message =
+      errorValue instanceof Error
+        ? errorValue.message
+        : '已刪除商家恢復失敗。'
+
+    return {
+      success:
+        false,
+
+      message,
+
+      error:
+        message,
+    }
+  }
+}
+// =================================
+// 已刪除商家列表
+// =================================
+
+export async function getDeletedMerchants(
+  filters:
+    MerchantFilters,
+): Promise<MerchantListResponse> {
+  const page =
+    Number.isInteger(
+      filters.page,
+    ) &&
+    filters.page > 0
+      ? filters.page
+      : 1
+
+  const pageSize =
+    Number.isInteger(
+      filters.pageSize,
+    ) &&
+    filters.pageSize > 0
+      ? filters.pageSize
+      : DEFAULT_PAGE_SIZE
+
+  const from =
+    (page - 1) *
+    pageSize
+
+  const to =
+    from +
+    pageSize -
+    1
+
+  try {
+    let query =
+      supabase
+        .from(
+          MERCHANT_TABLE,
+        )
+        .select(
+          '*',
+          {
+            count:
+              'exact',
+          },
+        )
+        .not(
+          'deleted_at',
+          'is',
+          null,
+        )
+
+    const keyword =
+      filters.keyword?.trim() ||
+      ''
+
+    if (keyword) {
+      query =
+        query.or(
+          [
+            `merchant_no.ilike.%${keyword}%`,
+            `name.ilike.%${keyword}%`,
+            `legal_name.ilike.%${keyword}%`,
+            `contact_name.ilike.%${keyword}%`,
+            `contact_phone.ilike.%${keyword}%`,
+            `contact_email.ilike.%${keyword}%`,
+          ].join(','),
+        )
+    }
+
+    if (
+      filters.merchantType
+    ) {
+      query =
+        query.eq(
+          'merchant_type',
+          filters.merchantType,
+        )
+    }
+
+    if (
+      filters.market
+    ) {
+      query =
+        query.eq(
+          'market',
+          filters.market,
+        )
+    }
+
+    if (
+      filters.status
+    ) {
+      query =
+        query.eq(
+          'status',
+          filters.status,
+        )
+    }
+
+    const {
+      data,
+      error,
+      count,
+    } =
+      await query
+        .order(
+          'deleted_at',
+          {
+            ascending:
+              false,
+          },
+        )
+        .range(
+          from,
+          to,
+        )
+
+    if (error) {
+      throw error
+    }
+
+    const merchants =
+      (data ?? []).map(
+        (row) =>
+          mapMerchant(
+            row as MerchantRow,
+          ),
+      )
+
+    const total =
+      count ?? 0
+
+    const statistics =
+      merchants.reduce<
+        MerchantStatistics
+      >(
+        (
+          result,
+          merchant,
+        ) => {
+          result.total += 1
+
+          switch (
+            merchant.status
+          ) {
+            case 'pending':
+              result.pending += 1
+              break
+
+            case 'approved':
+              result.approved += 1
+              break
+
+            case 'active':
+              result.active += 1
+              break
+
+            case 'suspended':
+              result.suspended += 1
+              break
+
+            case 'rejected':
+              result.rejected += 1
+              break
+
+            case 'disabled':
+              result.disabled += 1
+              break
+          }
+
+          switch (
+            merchant.market
+          ) {
+            case 'taiwan':
+              result.taiwan += 1
+              break
+
+            case 'china':
+              result.china += 1
+              break
+
+            case 'cross_border':
+              result.crossBorder += 1
+              break
+          }
+
+          return result
+        },
+        createEmptyStatistics(),
+      )
+
+    return {
+      success:
+        true,
+
+      message:
+        '已刪除商家列表載入成功。',
+
+      merchants,
+
+      statistics,
+
+      pagination: {
+        page,
+
+        pageSize,
+
+        total,
+
+        totalPages:
+          total === 0
+            ? 0
+            : Math.ceil(
+                total /
+                pageSize,
+              ),
+      },
+    }
+  } catch (
+    errorValue
+  ) {
+    const message =
+      errorValue instanceof Error
+        ? errorValue.message
+        : '已刪除商家列表載入失敗。'
+
+    return {
+      success:
+        false,
+
+      message,
+
+      error:
+        message,
+
+      merchants:
+        [],
+
+      statistics:
+        createEmptyStatistics(),
+
+      pagination:
+        createEmptyPagination(),
+    }
+  }
 }

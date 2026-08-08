@@ -40,7 +40,80 @@ const merchantRoutes: RouteRecordRaw[] = [
         'merchant.create',
     },
   },
+{
+  path:
+    '/merchants/create',
 
+  name:
+    'MerchantCreate',
+
+  component:
+    () =>
+      import(
+        '../../views/merchant/MerchantCreateView.vue'
+      ),
+
+  meta: {
+    title:
+      '新增商家',
+
+    requiresAuth:
+      true,
+
+    permission:
+      'merchant.create',
+  },
+},
+
+{
+  path:
+    '/merchants/archived',
+
+  name:
+    'MerchantArchived',
+
+  component:
+    () =>
+      import(
+        '../../views/merchant/ArchivedMerchantListView.vue'
+      ),
+
+  meta: {
+    title:
+      '封存商家',
+
+    requiresAuth:
+      true,
+
+    permission:
+      'merchant.view',
+  },
+},
+
+{
+  path:
+    '/merchants/deleted',
+
+  name:
+    'MerchantDeleted',
+
+  component:
+    () =>
+      import(
+        '../../views/merchant/DeletedMerchantListView.vue'
+      ),
+
+  meta: {
+    title:
+      '已刪除商家',
+
+    requiresAuth:
+      true,
+
+    permission:
+      'merchant.view',
+  },
+},
   {
     path:
       '/merchants/:id/edit',
@@ -114,7 +187,30 @@ const merchantRoutes: RouteRecordRaw[] = [
       'merchant.product.view',
   },
 },
+{
+  path:
+    '/merchants/archived',
 
+  name:
+    'MerchantArchived',
+
+  component:
+    () =>
+      import(
+        '../../views/merchant/ArchivedMerchantListView.vue'
+      ),
+
+  meta: {
+    title:
+      '封存商家',
+
+    requiresAuth:
+      true,
+
+    permission:
+      'merchant.view',
+  },
+},
 {
   path:
     '/merchants/products/:id',
@@ -138,6 +234,7 @@ const merchantRoutes: RouteRecordRaw[] = [
     permission:
       'merchant.product.view',
   },
+
 },
 ]
 

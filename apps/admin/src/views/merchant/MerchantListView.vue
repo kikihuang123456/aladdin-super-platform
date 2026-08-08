@@ -17,29 +17,54 @@
         </div>
 
         <div class="header-actions">
-          <button
-            class="refresh-button"
-            type="button"
-            :disabled="store.isLoading"
-            @click="handleRefresh"
-          >
-            重新整理
-          </button>
+  <button
+    class="refresh-button"
+    type="button"
+    :disabled="store.isLoading"
+    @click="handleRefresh"
+  >
+    重新整理
+  </button>
 
-          <button
-            v-if="
-              permissionStore.hasPermission(
-                'merchant.create',
-              )
-            "
-            class="primary-button"
-            type="button"
-          
-        @click="$router.push('/merchants/create')"
-      >
-            新增商家
-          </button>
-        </div>
+  <button
+    v-if="
+      permissionStore.hasPermission(
+        'merchant.view',
+      )
+    "
+    class="archive-list-button"
+    type="button"
+    @click="$router.push('/merchants/archived')"
+  >
+    封存商家
+  </button>
+
+  <button
+    v-if="
+      permissionStore.hasPermission(
+        'merchant.view',
+      )
+    "
+    class="deleted-list-button"
+    type="button"
+    @click="$router.push('/merchants/deleted')"
+  >
+    已刪除商家
+  </button>
+
+  <button
+    v-if="
+      permissionStore.hasPermission(
+        'merchant.create',
+      )
+    "
+    class="primary-button"
+    type="button"
+    @click="$router.push('/merchants/create')"
+  >
+    新增商家
+  </button>
+</div>
       </section>
 
       <section class="stats-grid">
@@ -894,6 +919,8 @@ function formatDate(
 }
 
 .refresh-button,
+.archive-list-button,
+.deleted-list-button,
 .primary-button {
   min-height: 42px;
   padding: 0 18px;
@@ -909,6 +936,24 @@ function formatDate(
   color: #334155;
 }
 
+.archive-list-button {
+  border: 1px solid #d97706;
+  background: #ffffff;
+  color: #b45309;
+}
+
+.archive-list-button:hover {
+  background: #fffbeb;
+}
+.deleted-list-button {
+  border: 1px solid #dc2626;
+  background: #ffffff;
+  color: #b91c1c;
+}
+
+.deleted-list-button:hover {
+  background: #fef2f2;
+}
 .primary-button {
   border: 1px solid #3157d6;
   background: #3157d6;
@@ -916,6 +961,8 @@ function formatDate(
 }
 
 .refresh-button:disabled,
+.archive-list-button:disabled,
+.deleted-list-button:disabled,
 .primary-button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
@@ -1006,7 +1053,15 @@ function formatDate(
   border-radius: 18px;
   background: #ffffff;
 }
+.deleted-list-button {
+  border: 1px solid #dc2626;
+  background: #ffffff;
+  color: #b91c1c;
+}
 
+.deleted-list-button:hover {
+  background: #fef2f2;
+}
 .table-wrapper {
   overflow-x: auto;
 }

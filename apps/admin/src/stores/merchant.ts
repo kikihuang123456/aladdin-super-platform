@@ -6,8 +6,6 @@
  * Pinia Store
  */
 
-import type { MerchantCreateInput } from '../types/merchant'
-import { createMerchant as createMerchantApi } from '../api/merchant'
 import {
   computed,
   ref,
@@ -18,14 +16,20 @@ import {
 } from 'pinia'
 
 import {
+  archiveMerchant,
+  createMerchant as createMerchantApi,
   getMerchantById,
   getMerchants,
-  reviewMerchant,
+restoreDeletedMerchant,
+restoreMerchant,
+reviewMerchant,
+softDeleteMerchant,
   updateMerchantStatus,
 } from '../api/merchant'
 
 import type {
   Merchant,
+  MerchantCreateInput,
   MerchantFilters,
   MerchantPagination,
   MerchantReviewInput,
@@ -112,8 +116,11 @@ function createEmptyStatistics():
 }
 
 function normalizeError(
-  errorValue: unknown,
-  fallback: string,
+  errorValue:
+    unknown,
+
+  fallback:
+    string,
 ): string {
   return errorValue instanceof Error
     ? errorValue.message
@@ -123,6 +130,7 @@ function normalizeError(
 export const useMerchantStore =
   defineStore(
     'merchant',
+
     () => {
       const merchants =
         ref<Merchant[]>([])
@@ -165,18 +173,21 @@ export const useMerchantStore =
 
       const hasMerchants =
         computed(() =>
-          merchants.value.length > 0,
+          merchants.value.length >
+          0,
         )
 
       const isEmpty =
         computed(() =>
           !isLoading.value &&
-          merchants.value.length === 0,
+          merchants.value.length ===
+            0,
         )
 
       const hasPreviousPage =
         computed(() =>
-          pagination.value.page > 1,
+          pagination.value.page >
+          1,
         )
 
       const hasNextPage =
@@ -186,7 +197,12 @@ export const useMerchantStore =
           pagination.value.page <
             pagination.value.totalPages,
         )
-              async function fetchMerchants():
+
+      // =================================
+      // 商家列表
+      // =================================
+
+      async function fetchMerchants():
         Promise<void> {
         if (isLoading.value) {
           return
@@ -242,8 +258,13 @@ export const useMerchantStore =
         }
       }
 
+      // =================================
+      // 商家詳情
+      // =================================
+
       async function fetchMerchantById(
-        merchantId: string,
+        merchantId:
+          string,
       ): Promise<
         Merchant | null
       > {
@@ -317,6 +338,23 @@ export const useMerchantStore =
         }
       }
 
+      // =================================
+      // 新增商家
+      // =================================
+
+      async function createMerchant(
+        input:
+          MerchantCreateInput,
+      ) {
+        return await createMerchantApi(
+          input,
+        )
+      }
+
+      // =================================
+      // 商家審核
+      // =================================
+
       async function reviewMerchantRequest(
         input:
           MerchantReviewInput,
@@ -387,6 +425,10 @@ export const useMerchantStore =
         }
       }
 
+      // =================================
+      // 商家狀態
+      // =================================
+
       async function updateStatus(
         input:
           MerchantStatusUpdateInput,
@@ -456,8 +498,300 @@ export const useMerchantStore =
             false
         }
       }
-            async function searchMerchants(
-        keyword: string,
+
+      // =================================
+      // 商家封存
+      // =================================
+
+      async function archiveMerchantRequest(
+        merchantId:
+          string,
+      ): Promise<boolean> {
+        if (isMutating.value) {
+          return false
+        }
+
+        const normalizedId =
+          merchantId.trim()
+
+        if (!normalizedId) {
+          error.value =
+            '商家 ID 不可空白。'
+
+          return false
+        }
+
+        isMutating.value =
+          true
+
+        error.value =
+          null
+
+        mutationMessage.value =
+          null
+
+        try {
+          const response =
+            await archiveMerchant(
+              normalizedId,
+            )
+
+          if (
+            !response.success ||
+            !response.merchant
+          ) {
+            throw new Error(
+              response.error ||
+              response.message,
+            )
+          }
+
+          currentMerchant.value =
+            response.merchant
+
+          mutationMessage.value =
+            response.message
+
+          await fetchMerchants()
+
+          return true
+        } catch (
+          errorValue
+        ) {
+          error.value =
+            normalizeError(
+              errorValue,
+              '封存商家失敗。',
+            )
+
+          return false
+        } finally {
+          isMutating.value =
+            false
+        }
+      }
+
+      // =================================
+      // 商家恢復
+      // =================================
+
+      async function restoreMerchantRequest(
+        merchantId:
+          string,
+      ): Promise<boolean> {
+        if (isMutating.value) {
+          return false
+        }
+
+        const normalizedId =
+          merchantId.trim()
+
+        if (!normalizedId) {
+          error.value =
+            '商家 ID 不可空白。'
+
+          return false
+        }
+
+        isMutating.value =
+          true
+
+        error.value =
+          null
+
+        mutationMessage.value =
+          null
+
+        try {
+          const response =
+            await restoreMerchant(
+              normalizedId,
+            )
+
+          if (
+            !response.success ||
+            !response.merchant
+          ) {
+            throw new Error(
+              response.error ||
+              response.message,
+            )
+          }
+
+          currentMerchant.value =
+            response.merchant
+
+          mutationMessage.value =
+            response.message
+
+          await fetchMerchants()
+
+          return true
+        } catch (
+          errorValue
+        ) {
+          error.value =
+            normalizeError(
+              errorValue,
+              '恢復商家失敗。',
+            )
+
+          return false
+        } finally {
+          isMutating.value =
+            false
+        }
+      }
+     // =================================
+// 恢復已刪除商家
+// =================================
+
+async function restoreDeletedMerchantRequest(
+  merchantId:
+    string,
+): Promise<boolean> {
+  if (isMutating.value) {
+    return false
+  }
+
+  const normalizedId =
+    merchantId.trim()
+
+  if (!normalizedId) {
+    error.value =
+      '商家 ID 不可空白。'
+
+    return false
+  }
+
+  isMutating.value =
+    true
+
+  error.value =
+    null
+
+  mutationMessage.value =
+    null
+
+  try {
+    const response =
+      await restoreDeletedMerchant(
+        normalizedId,
+      )
+
+    if (
+      !response.success ||
+      !response.merchant
+    ) {
+      throw new Error(
+        response.error ||
+        response.message,
+      )
+    }
+
+    currentMerchant.value =
+      response.merchant
+
+    mutationMessage.value =
+      response.message
+
+    await fetchMerchants()
+
+    return true
+  } catch (
+    errorValue
+  ) {
+    error.value =
+      normalizeError(
+        errorValue,
+        '恢復已刪除商家失敗。',
+      )
+
+    return false
+  } finally {
+    isMutating.value =
+      false
+  }
+}
+      // =================================
+      // 商家 Soft Delete
+      // =================================
+
+      async function softDeleteMerchantRequest(
+        merchantId:
+          string,
+      ): Promise<boolean> {
+        if (isMutating.value) {
+          return false
+        }
+
+        const normalizedId =
+          merchantId.trim()
+
+        if (!normalizedId) {
+          error.value =
+            '商家 ID 不可空白。'
+
+          return false
+        }
+
+        isMutating.value =
+          true
+
+        error.value =
+          null
+
+        mutationMessage.value =
+          null
+
+        try {
+          const response =
+            await softDeleteMerchant(
+              normalizedId,
+            )
+
+          if (
+            !response.success ||
+            !response.merchant
+          ) {
+            throw new Error(
+              response.error ||
+              response.message,
+            )
+          }
+
+          currentMerchant.value =
+            response.merchant
+
+          mutationMessage.value =
+            response.message
+
+          await fetchMerchants()
+
+          return true
+        } catch (
+          errorValue
+        ) {
+          error.value =
+            normalizeError(
+              errorValue,
+              '刪除商家失敗。',
+            )
+
+          return false
+        } finally {
+          isMutating.value =
+            false
+        }
+      }
+
+      // =================================
+      // 搜尋 / 篩選
+      // =================================
+
+      async function searchMerchants(
+        keyword:
+          string,
       ): Promise<void> {
         filters.value.keyword =
           keyword.trim()
@@ -470,7 +804,9 @@ export const useMerchantStore =
 
       async function setMerchantTypeFilter(
         merchantType:
-          MerchantFilters['merchantType'],
+          MerchantFilters[
+            'merchantType'
+          ],
       ): Promise<void> {
         filters.value.merchantType =
           merchantType
@@ -483,7 +819,9 @@ export const useMerchantStore =
 
       async function setMarketFilter(
         market:
-          MerchantFilters['market'],
+          MerchantFilters[
+            'market'
+          ],
       ): Promise<void> {
         filters.value.market =
           market
@@ -496,7 +834,9 @@ export const useMerchantStore =
 
       async function setStatusFilter(
         status:
-          MerchantFilters['status'],
+          MerchantFilters[
+            'status'
+          ],
       ): Promise<void> {
         filters.value.status =
           status
@@ -508,10 +848,13 @@ export const useMerchantStore =
       }
 
       async function setPage(
-        page: number,
+        page:
+          number,
       ): Promise<void> {
         if (
-          !Number.isInteger(page) ||
+          !Number.isInteger(
+            page,
+          ) ||
           page < 1
         ) {
           return
@@ -533,10 +876,13 @@ export const useMerchantStore =
       }
 
       async function setPageSize(
-        pageSize: number,
+        pageSize:
+          number,
       ): Promise<void> {
         if (
-          !Number.isInteger(pageSize) ||
+          !Number.isInteger(
+            pageSize,
+          ) ||
           pageSize < 1
         ) {
           return
@@ -559,6 +905,10 @@ export const useMerchantStore =
         await fetchMerchants()
       }
 
+      // =================================
+      // Clear
+      // =================================
+
       function clearCurrentMerchant():
         void {
         currentMerchant.value =
@@ -576,26 +926,8 @@ export const useMerchantStore =
         mutationMessage.value =
           null
       }
-  // =================================
-  // 新增商家
-  // =================================
-
-  async function createMerchant(
-    input:
-      MerchantCreateInput,
-  ) {
-    return await createMerchantApi(
-      input,
-    )
-  }
-
-
 
       return {
-
-
-
-        createMerchant,
         merchants,
         currentMerchant,
         filters,
@@ -615,9 +947,17 @@ export const useMerchantStore =
 
         fetchMerchants,
         fetchMerchantById,
+
+        createMerchant,
+
         reviewMerchantRequest,
         updateStatus,
 
+        archiveMerchantRequest,
+        restoreMerchantRequest,
+        softDeleteMerchantRequest,
+        restoreDeletedMerchantRequest,
+        
         searchMerchants,
         setMerchantTypeFilter,
         setMarketFilter,
