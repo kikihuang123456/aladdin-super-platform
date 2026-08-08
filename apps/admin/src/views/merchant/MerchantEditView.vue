@@ -515,6 +515,7 @@ import {
 } from '../../api/merchant'
 
 import {
+  deleteMerchantImageByUrl,
   uploadMerchantImage,
 } from '../../api/merchant-media'
 
@@ -573,6 +574,11 @@ const merchant =
   computed(() =>
     store.currentMerchant,
   )
+const originalLogoUrl =
+  ref<string | null>(null)
+
+const originalCoverImageUrl =
+  ref<string | null>(null)
 
 const form =
   reactive<MerchantUpdateInput>({
@@ -668,6 +674,12 @@ function populateForm(): void {
 
   form.coverImageUrl =
     value.coverImageUrl ?? ''
+
+originalLogoUrl.value =
+  value.logoUrl ?? null
+
+originalCoverImageUrl.value =
+  value.coverImageUrl ?? null
 
   form.websiteUrl =
     value.websiteUrl ?? ''
@@ -897,6 +909,11 @@ async function handleSubmit():
     true
 
   try {
+    const previousLogoUrl =
+  originalLogoUrl.value
+
+const previousCoverImageUrl =
+  originalCoverImageUrl.value
     const result =
       await updateMerchantProfile({
         ...form,
@@ -963,7 +980,49 @@ async function handleSubmit():
 
       return
     }
+const nextLogoUrl =
+  result.merchant.logoUrl ?? null
 
+const nextCoverImageUrl =
+  result.merchant.coverImageUrl ?? null
+
+if (
+  previousLogoUrl &&
+  previousLogoUrl !== nextLogoUrl
+) {
+  try {
+    await deleteMerchantImageByUrl(
+      previousLogoUrl,
+    )
+  } catch (cleanupError) {
+    console.warn(
+      '舊 Logo 清理失敗：',
+      cleanupError,
+    )
+  }
+}
+
+if (
+  previousCoverImageUrl &&
+  previousCoverImageUrl !== nextCoverImageUrl
+) {
+  try {
+    await deleteMerchantImageByUrl(
+      previousCoverImageUrl,
+    )
+  } catch (cleanupError) {
+    console.warn(
+      '舊封面清理失敗：',
+      cleanupError,
+    )
+  }
+}
+
+originalLogoUrl.value =
+  nextLogoUrl
+
+originalCoverImageUrl.value =
+  nextCoverImageUrl
     successMessage.value =
       '商家資料更新成功。'
 

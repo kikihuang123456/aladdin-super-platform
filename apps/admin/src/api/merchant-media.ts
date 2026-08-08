@@ -168,9 +168,110 @@ export async function uploadMerchantImage(
     )
   }
 
-  return {
+    return {
     path,
+
     publicUrl:
       data.publicUrl,
   }
 }
+
+export function getMerchantMediaPathFromUrl(
+  url:
+    string | null | undefined,
+): string | null {
+  if (!url) {
+    return null
+  }
+
+  const normalizedUrl =
+    url.trim()
+
+  if (!normalizedUrl) {
+    return null
+  }
+
+  const marker =
+    `/storage/v1/object/public/${MERCHANT_MEDIA_BUCKET}/`
+
+  const markerIndex =
+    normalizedUrl.indexOf(
+      marker,
+    )
+
+  if (markerIndex < 0) {
+    return null
+  }
+
+  const path =
+    normalizedUrl.slice(
+      markerIndex +
+      marker.length,
+    )
+
+  if (!path) {
+    return null
+  }
+
+  try {
+    return decodeURIComponent(
+      path,
+    )
+  } catch {
+    return path
+  }
+}
+export async function deleteMerchantImage(
+  path:
+    string | null | undefined,
+): Promise<void> {
+  if (!path) {
+    return
+  }
+
+  const normalizedPath =
+    path.trim()
+
+  if (!normalizedPath) {
+    return
+  }
+
+  const {
+    error,
+  } =
+    await supabase.storage
+      .from(
+        MERCHANT_MEDIA_BUCKET,
+      )
+      .remove([
+        normalizedPath,
+      ])
+
+  if (error) {
+    throw new Error(
+      error.message ||
+      '商家圖片刪除失敗。',
+    )
+  }
+}
+
+export async function deleteMerchantImageByUrl(
+  url:
+    string | null | undefined,
+): Promise<void> {
+  const path =
+    getMerchantMediaPathFromUrl(
+      url,
+    )
+
+  if (!path) {
+    return
+  }
+
+  await deleteMerchantImage(
+    path,
+  )
+}
+
+
+
